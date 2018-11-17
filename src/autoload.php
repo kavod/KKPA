@@ -1,9 +1,9 @@
 <?php
 
       // PHP version check
-      if (version_compare(PHP_VERSION,'7.2.10','<'))
+      if (version_compare(PHP_VERSION,'5.6','<'))
       {
-        throw new Exception('KKPA has not been tested with fewer PHP 7.2.10 ');
+        throw new Exception('KKPA has not been tested with fewer PHP 5.6 ');
       }
 
       //required libraries
