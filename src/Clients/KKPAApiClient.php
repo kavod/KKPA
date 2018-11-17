@@ -131,7 +131,7 @@
             $this->refresh_token = $config["refresh_token"];
         }*/
         // We must set uri first.
-        $uri = array("base_uri" => BACKEND_BASE_URI);
+        $uri = array("base_uri" => TPLINK_BASE_URI);
         foreach($uri as $key => $val)
         {
             if(isset($config[$key]))
