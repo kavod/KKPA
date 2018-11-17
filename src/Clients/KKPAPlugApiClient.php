@@ -1,21 +1,6 @@
 <?php
 namespace KKPA\Clients;
 
-define('SYS_TO_CONF',array(
-  "fwVer",
-  "deviceName",
-  "alias",
-  "deviceType",
-  "appServerUri",
-  "deviceModel",
-  "deviceMac",
-  "deviceId",
-  "hwId",
-  "fwId",
-  "oemId",
-  "deviceHwVer"
-));
-
 class KKPAPlugApiClient extends KKPAApiClient
 {
   protected $deviceId;
@@ -60,9 +45,24 @@ class KKPAPlugApiClient extends KKPAApiClient
     $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
     $system = $responseData['system']['get_sysinfo'];
 
+    $sys_to_conf = array(
+      "fwVer",
+      "deviceName",
+      "alias",
+      "deviceType",
+      "appServerUri",
+      "deviceModel",
+      "deviceMac",
+      "deviceId",
+      "hwId",
+      "fwId",
+      "oemId",
+      "deviceHwVer"
+    );
+
     foreach($system as $key => $value)
     {
-      if(in_array($key,SYS_TO_CONF))
+      if(in_array($key,$sys_to_conf))
       {
         $this->setVariable($key,$value);
       }
