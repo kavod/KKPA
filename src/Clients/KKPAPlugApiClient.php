@@ -1,0 +1,137 @@
+<?php
+namespace KKPA\Clients;
+
+define('SYS_TO_CONF',array(
+  "fwVer",
+  "deviceName",
+  "alias",
+  "deviceType",
+  "appServerUri",
+  "deviceModel",
+  "deviceMac",
+  "deviceId",
+  "hwId",
+  "fwId",
+  "oemId",
+  "deviceHwVer"
+));
+
+class KKPAPlugApiClient extends KKPAApiClient
+{
+  protected $deviceId;
+  public function __construct($config = array())
+  {
+    if(!isset($config["deviceId"]))
+    {
+      throw new Exception("DeviceId required");
+    }
+    parent::__construct($config);
+    $this->deviceId = $config['deviceId'];
+  }
+
+  public function getSysInfo($info=NULL)
+  {
+    if (isset($info))
+    {
+      if(is_string($info))
+        $info = array($info);
+      if(is_array($info))
+      {
+        foreach($info as $element)
+        {
+          if (!is_string($element))
+            throw new Exception("Info must be string or array of strings");
+        }
+      } else
+      {
+        throw new Exception("Info must be string or array of strings");
+      }
+    }
+    $requestData = json_encode(array("system" => array("get_sysinfo" => array())));
+    $param = json_encode(
+      array(
+        "method"=>"passthrough",
+        "params"=>array(
+          "deviceId"=>$this->deviceId,
+          "requestData"=>$requestData
+        )
+      )
+    );
+    $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
+    $system = $responseData['system']['get_sysinfo'];
+
+    foreach($system as $key => $value)
+    {
+      if(in_array($key,SYS_TO_CONF))
+      {
+        $this->setVariable($key,$value);
+      }
+    }
+
+    if (!isset($info))
+    {
+      return $system;
+    } else
+    {
+      $result = array();
+      foreach($system as $key => $value)
+      {
+        if(in_array($key,$info))
+        {
+          $result[$key] = $value;
+        }
+      }
+      return $result;
+    }
+  }
+
+  public function setRelayState($state)
+  {
+    $state = boolval($state);
+    if ($state) $state = 1; else $state = 0;
+    $requestData = json_encode(array("system" => array("set_relay_state" => array("state" => $state))));
+    $param = json_encode(
+      array(
+        "method"=>"passthrough",
+        "params"=>array(
+          "deviceId"=>$this->deviceId,
+          "requestData"=>$requestData
+        )
+      )
+    );
+    $this->api("",'POST',$param);
+  }
+
+  public function switchOn()
+  {
+    $this->setRelayState(1);
+  }
+
+  public function switchOff()
+  {
+    $this->setRelayState(0);
+  }
+
+  public function getState()
+  {
+    $sysinfo = $this->getSysInfo("relay_state");
+    return $sysinfo['relay_state'];
+  }
+
+  public function getRealTime()
+  {
+    $requestData = json_encode(array("emeter" => array("get_realtime" => NULL)));
+    $param = json_encode(
+      array(
+        "method"=>"passthrough",
+        "params"=>array(
+          "deviceId"=>$this->deviceId,
+          "requestData"=>$requestData
+        )
+      )
+    );
+    $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
+    return $responseData['emeter']['get_realtime'];
+  }
+}
+?>
