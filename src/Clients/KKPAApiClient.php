@@ -2,12 +2,20 @@
 
   namespace KKPA\Clients;
 
+  use Netatmo\Exceptions\KKPASDKException;
+  use Netatmo\Exceptions\KKPAClientException;
+  use Netatmo\Exceptions\KKPAApiErrorType;
+  use Netatmo\Exceptions\KKPACurlErrorType;
+  use Netatmo\Exceptions\KKPAJsonErrorType;
+  use Netatmo\Exceptions\KKPAInternalErrorType;
+  use Netatmo\Exceptions\KKPANotLoggedErrorType;
+  use Netatmo\Common\KKPARestErrorCode;
+
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
 
   class KKPAApiClient
   {
     protected $conf = array();
-    //protected $refresh_token;
     protected $token;
     protected $expires_at;
 
@@ -53,12 +61,12 @@
         {
             if(method_exists($object, $cb))
             {
-            call_user_func_array(array($object, $cb), array(array("token"=> $this->token/*, "refresh_token" => $this->refresh_token*/)));
+            call_user_func_array(array($object, $cb), array(array("token"=> $this->token)));
             }
         }
         else if($cb && is_callable($cb))
         {
-        call_user_func_array($cb, array(array("token" => $this->token/*, "refresh_token" => $this->refresh_token*/)));
+        call_user_func_array($cb, array(array("token" => $this->token)));
         }
     }
 
@@ -66,7 +74,7 @@
     {
         if(!isset($value['error_code']) || $value['error_code'] != 0)
         {
-          throw new Exception("Error retrieving token");
+          throw new KKPAClientException($value['error_code'],"Error retrieving token");
         }
         if(isset($value["result"]) && isset($value['result']['token']))
         {
@@ -87,18 +95,15 @@
     {
         if(isset($value["token"]))
             $this->token = $value["token"];
-        /*if(isset($value["refresh_token"]))
-            $this->refresh_token = $value["refresh_token"];*/
     }
     public function unsetTokens()
     {
         $this->token = null;
-        //$this->refresh_token = null;
         $this->expires_at = null;
     }
 
     /**
-    * Initialize a NA OAuth2.0 Client.
+    * Initialize a KKPA OAuth2.0 Client.
     *
     * @param $config
     *   An associative array as below:
@@ -126,10 +131,6 @@
         } else {
             $this->uuid = self::guidv4();
         }
-        /*if(isset($config["refresh_token"]))
-        {
-            $this->refresh_token = $config["refresh_token"];
-        }*/
         // We must set uri first.
         $uri = array("base_uri" => TPLINK_BASE_URI);
         foreach($uri as $key => $val)
@@ -172,7 +173,7 @@
         CURLOPT_RETURNTRANSFER => TRUE,
         CURLOPT_HEADER         => TRUE,
         CURLOPT_TIMEOUT        => 60,
-        CURLOPT_USERAGENT      => 'netatmoclient',
+        CURLOPT_USERAGENT      => 'Kasa_Android',
         CURLOPT_SSL_VERIFYPEER => TRUE,
         CURLOPT_HTTPHEADER     => array(
             "Content-Type: application/json"
@@ -194,7 +195,7 @@
     *   (optional) An initialized curl handle
     *
     * @return
-    *   The json_decoded result or NAClientException if pb happend
+    *   The json_decoded result or KKPAClientException if pb happend
     */
     public function makeRequest($path, $method = 'POST', $params = array())
     {
@@ -205,8 +206,6 @@
             if(isset($this->token))
             {
                 $path .= '?token=' . $this->token;
-                /*$opts[CURLOPT_HTTPHEADER][] = 'Authorization: Bearer ' . $params['access_token'];
-                unset($params['access_token']);*/
             }
             switch ($method)
             {
@@ -215,14 +214,7 @@
                 break;
                 // Method override as we always do a POST.
                 default:
-                    /*if ($this->getVariable('file_upload_support'))
-                    {*/
-                        $opts[CURLOPT_POSTFIELDS] = $params;
-                    /*}
-                    else
-                    {
-                        $opts[CURLOPT_POSTFIELDS] = http_build_query($params, NULL, '&');
-                    }*/
+                    $opts[CURLOPT_POSTFIELDS] = $params;
                 break;
             }
         }
@@ -254,7 +246,7 @@
         }
         if ($result === FALSE)
         {
-            $e = new NACurlErrorType(curl_errno($ch), curl_error($ch));
+            $e = new KKPACurlErrorType(curl_errno($ch), curl_error($ch));
             curl_close($ch);
             throw $e;
         }
@@ -270,9 +262,9 @@
             {
                 if (preg_match('/^HTTP\/1.1 ([0-9]{3,3}) (.*)$/', $headers[0], $matches))
                 {
-                    throw new NAJsonErrorType($matches[1], $matches[2]);
+                    throw new KKPAJsonErrorType($matches[1], $matches[2]);
                 }
-                else throw new NAJsonErrorType(200, "OK");
+                else throw new KKPAJsonErrorType(200, "OK");
             }
             return $decode;
         }
@@ -285,9 +277,9 @@
             $decode = json_decode($body, TRUE);
             if(!$decode)
             {
-                throw new NAApiErrorType($matches[1], $matches[2], null);
+                throw new KKPAApiErrorType($matches[1], $matches[2], null);
             }
-            throw new NAApiErrorType($matches[1], $matches[2], $decode);
+            throw new KKPAApiErrorType($matches[1], $matches[2], $decode);
         }
     }
     /**
@@ -296,7 +288,7 @@
     * @return
     * A valid array containing at least an access_token as an index
     *  @throw
-    * A NAClientException if unable to retrieve an access_token
+    * A KKPAClientException if unable to retrieve an access_token
     */
     public function getAccessToken()
     {
@@ -305,14 +297,7 @@
         {
             if(!is_null($this->expires_at) && $this->expires_at < time()) // access_token expired.
             {
-                /*if($this->refresh_token)
-                {
-                    return $this->getAccessTokenFromRefreshToken($this->refresh_token);//exception will be thrown otherwise
-                }
-                else
-                {*/
-                    throw new NAInternalErrorType("Access token expired");
-                //}
+                throw new KKPAInternalErrorType("Access token expired");
             }
             return array("token" => $this->token);
         }
@@ -320,37 +305,13 @@
         {
             return $this->getAccessTokenFromAuthorizationCode($this->getVariable('code'));
         }
-        /*else if($this->refresh_token)// grant_type == refresh_token
-        {
-            return $this->getAccessTokenFromRefreshToken();
-        }*/
         else if($this->getVariable('username') && $this->getVariable('password'))  //grant_type == password
         {
             return $this->getAccessTokenFromPassword($this->getVariable('username'), $this->getVariable('password'));
         }
-        else throw new NAInternalErrorType("No access token stored");
+        else throw new KKPAInternalErrorType("No access token stored");
     }
-    /**
-    * Get url to redirect to oauth2.0 netatmo authorize endpoint
-    * This is the url where app server needing netatmo access need to route their user (via redirect)
-    *
-    *
-    * @param scope
-    *   scope used here
-    * @param state
-    *   state returned in redirect_uri
-    */
-    /*public function getAuthorizeUrl($state = null)
-    {
-        $redirect_uri = $this->getRedirectUri();
-        if($state == null)
-        {
-            $state = rand();
-        }
-        $scope = $this->getVariable('scope');
-        $params = array("scope" => $scope, "state" => $state, "client_id" => $this->getVariable("client_id"), "client_secret" => $this->getVariable("client_secret"), "response_type" => "code", "redirect_uri" => $redirect_uri);
-        return $this->getUri($this->getVariable("authorize_uri"), $params);
-    }*/
+
     /**
     * Get access token from OAuth2.0 token endpoint with authorization code.
     *
@@ -364,11 +325,10 @@
     * @return
     *   A valid OAuth2.0 JSON decoded access token in associative array
     * @thrown
-    *  A NAClientException if unable to retrieve an access_token
+    *  A KKPAClientException if unable to retrieve an access_token
     */
     private function getAccessTokenFromAuthorizationCode($code)
     {
-        //$redirect_uri = $this->getRedirectUri();
         $scope = $this->getVariable('scope');
         if($this->getVariable('base_uri') && ($client_id = $this->getVariable('client_id')) != NULL && ($client_secret = $this->getVariable('client_secret')) != NULL)
         {
@@ -379,7 +339,6 @@
                     'client_id' => $client_id,
                     'client_secret' => $client_secret,
                     'code' => $code,
-                    //'redirect_uri' => $redirect_uri,
                     'scope' => $scope,
                 )
             );
@@ -387,7 +346,7 @@
             return $ret;
         }
         else
-            throw new NAInternalErrorType("missing args for getting authorization code grant");
+            throw new KKPAInternalErrorType("missing args for getting authorization code grant");
     }
   /**
    * Get access token from OAuth2.0 token endpoint with basic user
@@ -404,7 +363,7 @@
    * @return
    *   A valid OAuth2.0 JSON decoded access token in associative array
    * @thrown
-   *  A NAClientException if unable to retrieve an access_token
+   *  A KKPAClientException if unable to retrieve an access_token
    */
     private function getAccessTokenFromPassword($username, $password)
     {
@@ -431,62 +390,9 @@
             return $this->token;
         }
         else
-            throw new NAInternalErrorType("missing args for getting password grant");
+            throw new KKPAInternalErrorType("missing args for getting password grant");
     }
-    /**
-    * Get access token from OAuth2.0 token endpoint with basic user
-    * credentials.
-    *
-    * This function will only be activated if both username and password
-    * are setup correctly.
-    *
-    * @param $username
-    *   Username to be check with.
-    * @param $password
-    *   Password to be check with.
-    *
-    * @return
-    *   A valid OAuth2.0 JSON decoded access token in associative array
-    * @thrown
-    *  A NAClientException if unable to retrieve an access_token
-    */
-    /*private function getAccessTokenFromRefreshToken()
-    {
-        if ($this->getVariable('base_uri') && ($client_id = $this->getVariable('client_id')) != NULL && ($client_secret = $this->getVariable('client_secret')) != NULL && ($refresh_token = $this->refresh_token) != NULL)
-        {
-            if($this->getVariable('scope') != null)
-            {
-                $ret = $this->makeRequest(
-                    $this->getVariable('base_uri'),
-                    'POST',
-                    array(
-                        'grant_type' => 'refresh_token',
-                        'client_id' => $this->getVariable('client_id'),
-                        'client_secret' => $this->getVariable('client_secret'),
-                        'refresh_token' => $refresh_token,
-                        'scope' => $this->getVariable('scope'),
-                        )
-                    );
-            }
-            else
-            {
-                $ret = $this->makeRequest(
-                    $this->getVariable('base_uri'),
-                    'POST',
-                    array(
-                        'grant_type' => 'refresh_token',
-                        'client_id' => $this->getVariable('client_id'),
-                        'client_secret' => $this->getVariable('client_secret'),
-                        'refresh_token' => $refresh_token,
-                        )
-                    );
-            }
-            $this->setTokens($ret);
-            return $ret;
-        }
-        else
-            throw new NAInternalErrorType("missing args for getting refresh token grant");
-    }*/
+
     /**
     * Make an OAuth2.0 Request.
     *
@@ -510,38 +416,24 @@
         {
             $token = $this->getAccessToken();
         }
-        catch(NAApiErrorType $ex)
+        catch(KKPAApiErrorType $ex)
         {
-            throw new NANotLoggedErrorType($ex->getCode(), $ex->getMessage());
+            throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
         }
-        //$params["token"] = $token;
         try
         {
             $res = $this->makeRequest($path, $method, $params);
             return $res;
         }
-        catch(NAApiErrorType $ex)
+        catch(KKPAApiErrorType $ex)
         {
             if($reget_token == true)
             {
                 switch($ex->getCode())
                 {
-                    case NARestErrorCode::INVALID_ACCESS_TOKEN:
-                    case NARestErrorCode::ACCESS_TOKEN_EXPIRED:
-                        /*//Ok token has expired let's retry once
-                        if($this->refresh_token)
-                        {
-                            try
-                            {
-                                $this->getAccessTokenFromRefreshToken();//exception will be thrown otherwise
-                }
-                catch(Exception $ex2)
-                            {
-                                //Invalid refresh token TODO: Throw a special exception
-                                throw $ex;
-                            }
-                        }
-                        else*/ throw $ex;
+                    case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
+                    case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
+                        throw $ex;
                         return $this->makeOAuth2Request($path, $method, $params, false);
                     break;
                     default:
@@ -575,63 +467,19 @@
      * @return
      *   The JSON decoded body response object.
      *
-     * @throws NAClientException
+     * @throws KKPAClientException
     */
     public function api($path, $method = 'POST', $params = array(), $secure = false)
     {
-        /*if (is_array($method) && empty($params))
-        {
-            $params = $method;
-            $method = 'POST';
-        }*/
-        // json_encode all params values that are not strings.
-        /*foreach ($params as $key => $value)
-        {
-            if (!is_string($value))
-            {
-                $params[$key] = json_encode($value);
-            }
-        }*/
-    $res = $this->makeOAuth2Request($this->getUri($path, array(), $secure), $method, $params);
-    if(!isset($res['error_code']) || $res['error_code'] !=0)
-    {
-        throw new Exception("Error");
+      $res = $this->makeOAuth2Request($this->getUri($path, array(), $secure), $method, $params);
+      if(!isset($res['error_code']) || $res['error_code'] !=0)
+      {
+          throw new KKPAClientException($res['error_code'],"Error");
+      }
+          if(isset($res["result"])) return $res["result"];
+      else return $res;
     }
-        if(isset($res["result"])) return $res["result"];
-    else return $res;
-    }
-    /**
-     * Make a REST call to a Netatmo server that do not need access_token
-     *
-     * @param $path
-     *   The target path, relative to base_path/service_uri or an absolute URI.
-     * @param $method
-     *   (optional) The HTTP method (default 'GET').
-     * @param $params
-     *   (optional The GET/POST parameters.
-     *
-     * @return
-     *   The JSON decoded response object.
-     *
-     * @throws NAClientException
-    */
-    public function noTokenApi($path, $method = 'GET', $params = array())
-    {
-        if (is_array($method) && empty($params))
-        {
-            $params = $method;
-            $method = 'GET';
-        }
-        // json_encode all params values that are not strings.
-        foreach ($params as $key => $value)
-        {
-            if (!is_string($value))
-            {
-                $params[$key] = json_encode($value);
-            }
-        }
-        return $this->makeRequest($path, $method, $params);
-    }
+
     static public function str_replace_once($str_pattern, $str_replacement, $string)
     {
         if (strpos($string, $str_pattern) !== false)
@@ -694,18 +542,6 @@
         // Rebuild.
         return $protocol . $parts['host'] . $port . $parts['path'] . $query;
     }
-    /**
-     * Returns the Current URL.
-     *
-     * @return
-     *   The current URL.
-    */
-    /*protected function getRedirectUri()
-    {
-        $redirect_uri = $this->getVariable("redirect_uri");
-        if(!empty($redirect_uri)) return $redirect_uri;
-        else return $this->getCurrentUri();
-    }*/
     /**
     * Build the URL for given path and parameters.
     *

@@ -46,18 +46,17 @@ class KKPAPlugApiClient extends KKPAApiClient
     $system = $responseData['system']['get_sysinfo'];
 
     $sys_to_conf = array(
-      "fwVer",
-      "deviceName",
+      "sw_ver",
+      "dev_name",
       "alias",
-      "deviceType",
-      "appServerUri",
-      "deviceModel",
-      "deviceMac",
+      "type",
+      "model",
+      "mac",
       "deviceId",
       "hwId",
       "fwId",
       "oemId",
-      "deviceHwVer"
+      "hw_ver"
     );
 
     foreach($system as $key => $value)
