@@ -130,7 +130,11 @@ class KKPAPlugApiClient extends KKPAApiClient
       )
     );
     $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
-    return $responseData['emeter']['get_realtime'];
+    if (array_key_exists('get_realtime',$responseData['emeter'])) {
+      return $responseData['emeter']['get_realtime'];
+    } else {
+      return array();
+    }
   }
 }
 ?>
