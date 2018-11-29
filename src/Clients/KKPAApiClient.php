@@ -575,25 +575,6 @@
     {
         return $this->api("partnerdevices", "POST");
     }
-    /**
-    * @param string url : webhook url
-    * @param string app_type : type of webhook
-    * @brief register a webhook notification sent to your app for the current user
-    */
-    protected function addWebhook($url, $app_type)
-    {
-        $params = array('url' => $url, 'app_type' => $app_type);
-        $this->api('addwebhook', $params);
-    }
-    /**
-    * @param string $app_type: type of webhook
-    * @brief drop webhook notification for the current user
-    */
-    protected function dropWebhook($app_type)
-    {
-        $params = array('app_type' => $app_type);
-        $this->api('dropwebhook', $params);
-    }
 
     public function getDeviceList()
     {
