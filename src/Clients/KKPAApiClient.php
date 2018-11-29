@@ -2,14 +2,14 @@
 
   namespace KKPA\Clients;
 
-  use Netatmo\Exceptions\KKPASDKException;
-  use Netatmo\Exceptions\KKPAClientException;
-  use Netatmo\Exceptions\KKPAApiErrorType;
-  use Netatmo\Exceptions\KKPACurlErrorType;
-  use Netatmo\Exceptions\KKPAJsonErrorType;
-  use Netatmo\Exceptions\KKPAInternalErrorType;
-  use Netatmo\Exceptions\KKPANotLoggedErrorType;
-  use Netatmo\Common\KKPARestErrorCode;
+  use KKPA\Exceptions\KKPASDKException;
+  use KKPA\Exceptions\KKPAClientException;
+  use KKPA\Exceptions\KKPAApiErrorType;
+  use KKPA\Exceptions\KKPACurlErrorType;
+  use KKPA\Exceptions\KKPAJsonErrorType;
+  use KKPA\Exceptions\KKPAInternalErrorType;
+  use KKPA\Exceptions\KKPANotLoggedErrorType;
+  use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
 
