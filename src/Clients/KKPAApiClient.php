@@ -12,12 +12,28 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
+  define('KKPA_VERSION',"1.0");
 
   class KKPAApiClient
   {
     protected $conf = array();
     protected $token;
     protected $expires_at;
+    protected $last_request = "";
+    protected $last_result = "";
+    protected $last_errno = 0;
+
+    public static function getVersion() {
+      return KKPA_VERSION;
+    }
+
+    public function debug_last_request() {
+      return array(
+        "request" => $this->last_request,
+        "result" => $this->last_result,
+        "errno" => $this->last_errno
+      );
+    }
 
     /**
      * Returns a persistent variable.
@@ -234,9 +250,26 @@
         {
             $opts[CURLOPT_HTTPHEADER] = array('Expect:');
         }
+        $this->last_request = str_replace(
+          $this->getVariable('password'),
+          '*****',
+          str_replace(
+            $this->getVariable('username'),
+            '*****',
+            print_r($opts,true)
+          )
+        );
+        $this->last_result = "";
+        $this->last_errno = 0;
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
+        $this->last_result = str_replace(
+          $this->getVariable('username'),
+          '*****',
+          $result
+        );
+        $this->last_errno = $errno;
         // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
         if ($errno == 60 || $errno == 77)
         {

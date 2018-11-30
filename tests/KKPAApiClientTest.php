@@ -46,7 +46,7 @@ final class KKPAApiClientTest extends TestCase
 
     public function testAuth1(): void
     {
-      $client = $this::instance();
+      $client = $this::instance(self::$conf);
       $conf = array(
         "method" => "login",
         "params" => array(
@@ -60,6 +60,7 @@ final class KKPAApiClientTest extends TestCase
           $client->makeRequest('https://wap.tplinkcloud.com','POST',json_encode($conf))['error_code'],
           0
         );
+      //print_r($client->debug_last_request());
     }
 
     public function testAuth2(): void
@@ -70,6 +71,7 @@ final class KKPAApiClientTest extends TestCase
           '/[\d\w]{8}-[\d\w]{23}/',
           $client->getAccessToken()
         );
+      //print_r($client->debug_last_request());
     }
 
     public function testApi1(): void
@@ -77,6 +79,7 @@ final class KKPAApiClientTest extends TestCase
       $client = $this::instance(self::$conf);
       $deviceList = $client->api("",'POST',json_encode(array("method" => "getDeviceList")));
       $this->assertInternalType('array',$deviceList);
+      //print_r($client->debug_last_request());
     }
 
     public function testGetDeviceList(): void
@@ -88,6 +91,22 @@ final class KKPAApiClientTest extends TestCase
       {
         $this->assertInstanceOf(KKPA\Clients\KKPAPlugApiClient::class,$deviceList[0]);
       }
+      //print_r($client->debug_last_request());
+    }
+
+    public function testDebug(): void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = $client->getDeviceList();
+      $last_request = $client->debug_last_request();
+      $this->assertInternalType('array',$last_request);
+      $this->assertArrayHasKey('request',$last_request);
+      $this->assertArrayHasKey('result',$last_request);
+      $this->assertArrayHasKey('errno',$last_request);
+      $this->assertInternalType('string',$last_request['request']);
+      $this->assertInternalType('string',$last_request['result']);
+      $this->assertInternalType('int',$last_request['errno']);
+
     }
 
     public function testApi2(): void
@@ -96,6 +115,7 @@ final class KKPAApiClientTest extends TestCase
       $device = self::getDevice($client);
       $sysInfo = $device->getSysInfo();
       $this->assertInternalType("string",$sysInfo['alias']);
+      //print_r($device->debug_last_request());
     }
 
     public function testSwitchOff(): void
@@ -108,6 +128,7 @@ final class KKPAApiClientTest extends TestCase
         $device->getState(),
         0
       );
+      //print_r($device->debug_last_request());
     }
 
     public function testSwitchOn(): void
@@ -120,6 +141,7 @@ final class KKPAApiClientTest extends TestCase
         $device->getState(),
         1
       );
+      //print_r($device->debug_last_request());
     }
 
     public function testGetRealTime():void
@@ -128,6 +150,7 @@ final class KKPAApiClientTest extends TestCase
       $device = self::getDevice($client);
       $realTime = $device->getRealTime();
       $this->assertInternalType("int",$realTime['power_mw']);
+      //print_r($device->debug_last_request());
     }
 
     public function instance($config = array()): KKPA\Clients\KKPAApiClient
