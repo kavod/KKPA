@@ -13,7 +13,7 @@ final class KKPAApiClientTest extends TestCase
     public static function setUpBeforeClass()
     {
       require(__ROOT__.'/Examples/Config.php');
-
+      self::assertRegExp('/.+/',$username);
       self::$conf = array(
         "username" => $username,
         "password" => $password
@@ -97,8 +97,9 @@ final class KKPAApiClientTest extends TestCase
     public function testDebug(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
-      $last_request = $client->debug_last_request();
+      $device = self::getDevice($client);
+      $sysInfo = $device->getSysInfo();
+      $last_request = $device->debug_last_request();
       $this->assertInternalType('array',$last_request);
       $this->assertArrayHasKey('request',$last_request);
       $this->assertArrayHasKey('result',$last_request);
@@ -106,6 +107,18 @@ final class KKPAApiClientTest extends TestCase
       $this->assertInternalType('string',$last_request['request']);
       $this->assertInternalType('string',$last_request['result']);
       $this->assertInternalType('int',$last_request['errno']);
+      list($headers, $body) = explode("\r\n\r\n", $last_request['result']);
+      $decode = json_decode($body, TRUE);
+      $decode = json_decode($decode['result']['responseData'],TRUE);
+      $this->assertFalse(!$decode);
+      $this->assertEquals(
+        0,
+        $decode['system']['get_sysinfo']['latitude_i']
+      );
+      $this->assertEquals(
+        0,
+        $decode['system']['get_sysinfo']['longitude_i']
+      );
 
     }
 

@@ -264,10 +264,20 @@
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
-        $this->last_result = str_replace(
-          $this->getVariable('username'),
-          '*****',
-          $result
+        $this->last_result = preg_replace(
+          //'/\\"(latitude_i)\\":(\d+)/',
+          '/\\\"(latitude(_i){0,1})\\\":(\d+),/',
+          '\\"$1\\":0,',
+          preg_replace(
+            //'/\\"(latitude_i)\\":(\d+)/',
+            '/\\\"(longitude(_i){0,1})\\\":(\d+),/',
+            '\\"$1\\":0,',
+            str_replace(
+              $this->getVariable('username'),
+              '*****',
+              $result
+            )
+          )
         );
         $this->last_errno = $errno;
         // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
