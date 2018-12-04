@@ -4,6 +4,7 @@
 
   use KKPA\Exceptions\KKPASDKException;
   use KKPA\Exceptions\KKPAClientException;
+  use KKPA\Exceptions\KKPADeviceException;
   use KKPA\Exceptions\KKPAApiErrorType;
   use KKPA\Exceptions\KKPACurlErrorType;
   use KKPA\Exceptions\KKPAJsonErrorType;
@@ -265,12 +266,10 @@
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
         $this->last_result = preg_replace(
-          //'/\\"(latitude_i)\\":(\d+)/',
-          '/\\\"(latitude(_i){0,1})\\\":(\d+),/',
+          '/\\\"(latitude(_i)?)\\\":(-?\d+(\.\d+)?),/',
           '\\"$1\\":0,',
           preg_replace(
-            //'/\\"(latitude_i)\\":(\d+)/',
-            '/\\\"(longitude(_i){0,1})\\\":(\d+),/',
+            '/\\\"(longitude(_i)?)\\\":(-?\d+(\.\d+)?),/',
             '\\"$1\\":0,',
             str_replace(
               $this->getVariable('username'),
@@ -515,11 +514,19 @@
     public function api($path, $method = 'POST', $params = array(), $secure = false)
     {
       $res = $this->makeOAuth2Request($this->getUri($path, array(), $secure), $method, $params);
-      if(!isset($res['error_code']) || $res['error_code'] !=0)
+      if(!isset($res['error_code']))
       {
-          throw new KKPAClientException($res['error_code'],"Error");
+          throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");
       }
-          if(isset($res["result"])) return $res["result"];
+      if($res['error_code'] == -20571) // KKPA_DEVICE_OFFLINE -20571
+      {
+          throw new KKPADeviceException($res['error_code'],"Device is offline","Error");
+      }
+      if($res['error_code'] !=0)
+      {
+          throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");
+      }
+      if(isset($res["result"])) return $res["result"];
       else return $res;
     }
 
