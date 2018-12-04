@@ -122,6 +122,24 @@ final class KKPAApiClientTest extends TestCase
 
     }
 
+    public function testToString(): void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = $client->getDeviceList();
+      foreach($deviceList as $device)
+      {
+        $string = $device->toString();
+        $this->assertEquals(
+          1,
+          preg_match('/\[username\] => \*\*\*\*\*/',$string)
+        );
+        $this->assertEquals(
+          1,
+          preg_match('/\[password\] => \*\*\*\*\*/',$string)
+        );
+      }
+    }
+
     public function testApi2(): void
     {
       $client = $this::instance(self::$conf);

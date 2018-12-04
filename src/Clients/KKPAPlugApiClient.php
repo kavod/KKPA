@@ -136,5 +136,12 @@ class KKPAPlugApiClient extends KKPAApiClient
       return array();
     }
   }
+
+  public function toString()
+  {
+    $array = parent::toArray();
+    $array['deviceId'] = $this->deviceId;
+    return print_r($array,true);
+  }
 }
 ?>

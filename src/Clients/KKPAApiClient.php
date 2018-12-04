@@ -23,6 +23,7 @@
     protected $last_request = "";
     protected $last_result = "";
     protected $last_errno = 0;
+    protected $uuid = "";
 
     public static function getVersion() {
       return KKPA_VERSION;
@@ -68,6 +69,23 @@
     {
         $this->conf[$name] = $value;
         return $this;
+    }
+
+    public function toArray() {
+      return array(
+        'conf' => array(
+          'base_uri' => $this->getVariable('base_uri',''),
+          'username' => ($this->getVariable('username','')!='') ? '*****' : '',
+          'password' => ($this->getVariable('password','')!='') ? '*****' : '',
+          'deviceId' => $this->getVariable('deviceId','')
+        ),
+        'token' => $this->token,
+        'uuid' => $this->uuid
+        );
+    }
+
+    public function toString() {
+      return print_r($this->toArray(),true);
     }
 
     private function updateSession()
