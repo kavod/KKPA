@@ -1,5 +1,6 @@
 <?php
       define('__ROOT__', dirname(dirname(__FILE__)));
+      require_once(__DIR__.'/../src/Exceptions/KKPAExceptionConst.php');
 
       // PHP version check
       if (version_compare(PHP_VERSION,'7.2.10','<'))

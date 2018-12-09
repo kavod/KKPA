@@ -1,5 +1,6 @@
 <?php
 
+      require_once(__DIR__.'/Exceptions/KKPAExceptionConst.php');
       // PHP version check
       if (version_compare(PHP_VERSION,'5.6','<'))
       {
