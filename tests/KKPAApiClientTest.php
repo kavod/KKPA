@@ -44,6 +44,15 @@ final class KKPAApiClientTest extends TestCase
         );
     }
 
+    /**
+         * @expectedException KKPA\Exceptions\KKPACurlErrorType
+         */
+    public function testMakeRequest1(): void
+    {
+      $client = $this::instance();
+      $client->makeRequest('https://liugkuyhgkuyg');
+    }
+
     public function testAuth1(): void
     {
       $client = $this::instance(self::$conf);
