@@ -1,6 +1,5 @@
 <?php
 namespace KKPA\Exceptions;
-define('KKPA_DEVICE_OFFLINE', -20571); // {"error_code":-20571,"msg":"Device is offline"}
 /**
  * OAuth2.0 KKPA exception handling
  *

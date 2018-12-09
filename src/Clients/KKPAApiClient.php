@@ -536,9 +536,13 @@
       {
           throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");
       }
-      if($res['error_code'] == -20571) // KKPA_DEVICE_OFFLINE -20571
+      if($res['error_code'] == KKPA_DEVICE_OFFLINE) // KKPA_DEVICE_OFFLINE -20571
       {
           throw new KKPADeviceException($res['error_code'],"Device is offline","Error");
+      }
+      if($res['error_code'] == KKPA_TIMEOUT) // KKPA_TIMEOUT -20002
+      {
+          throw new KKPADeviceException($res['error_code'],"Request timeout","Error");
       }
       if($res['error_code'] !=0)
       {
