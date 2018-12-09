@@ -284,11 +284,11 @@
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
         $this->last_result = preg_replace(
-          '/\\\"(latitude(_i)?)\\\":(-?\d+(\.\d+)?),/',
-          '\\"$1\\":0,',
+          '/\\\"(latitude(_i)?)\\\":(-?\d+(\.\d+)?)(,|\})/',
+          '\\"$1\\":0${5}',
           preg_replace(
-            '/\\\"(longitude(_i)?)\\\":(-?\d+(\.\d+)?),/',
-            '\\"$1\\":0,',
+            '/\\\"(longitude(_i)?)\\\":(-?\d+(\.\d+)?)(,|\})/',
+            '\\"$1\\":0${5}',
             str_replace(
               $this->getVariable('username'),
               '*****',
