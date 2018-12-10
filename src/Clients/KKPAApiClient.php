@@ -544,6 +544,10 @@
       {
           throw new KKPADeviceException($res['error_code'],"Request timeout","Error");
       }
+      if($res['error_code'] == KKPA_NOT_BINDED) // KKPA_NOT_BINDED -20580
+      {
+          throw new KKPADeviceException($res['error_code'],"Account is not binded to the device","Error");
+      }
       if($res['error_code'] !=0)
       {
           throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");

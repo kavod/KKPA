@@ -7,4 +7,5 @@ define('KKPA_JSON_ERROR_TYPE',3);
 define('KKPA_NOT_LOGGED_ERROR_TYPE', 4); //unable to get access token
 define('KKPA_DEVICE_OFFLINE', -20571); // {"error_code":-20571,"msg":"Device is offline"}
 define('KKPA_TIMEOUT', -20002); // {"error_code":-20002,"msg": "Request timeout"}
+define('KKPA_NOT_BINDED', -20580); // {"error_code": -20580,"msg": "Account is not binded to the device"}
  ?>
