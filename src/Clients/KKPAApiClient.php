@@ -13,7 +13,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"1.0");
+  define('KKPA_VERSION',"1.1");
 
   class KKPAApiClient
   {
@@ -109,7 +109,7 @@
     {
         if(!isset($value['error_code']) || $value['error_code'] != 0)
         {
-          throw new KKPAClientException($value['error_code'],"Error retrieving token");
+          throw new KKPAClientException($value['error_code'],"Error retrieving token","Error");
         }
         if(isset($value["result"]) && isset($value['result']['token']))
         {
