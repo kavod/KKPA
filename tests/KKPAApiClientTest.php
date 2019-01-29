@@ -185,6 +185,32 @@ final class KKPAApiClientTest extends TestCase
       //print_r($device->debug_last_request());
     }
 
+    public function testLedOff(): void
+    {
+      $client = $this::instance(self::$conf);
+      $device = self::getDevice($client);
+      $device->setLedOff();
+      sleep(DELAY_BEFORE_STATE);
+      $this->assertEquals(
+        $device->getLedState(),
+        0
+      );
+      //print_r($device->debug_last_request());
+    }
+
+    public function testLedOn(): void
+    {
+      $client = $this::instance(self::$conf);
+      $device = self::getDevice($client);
+      $device->setLedOn();
+      sleep(DELAY_BEFORE_STATE);
+      $this->assertEquals(
+        $device->getLedState(),
+        1
+      );
+      //print_r($device->debug_last_request());
+    }
+
     public function testGetRealTime():void
     {
       $client = $this::instance(self::$conf);

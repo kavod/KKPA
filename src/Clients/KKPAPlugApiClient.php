@@ -57,7 +57,8 @@ class KKPAPlugApiClient extends KKPAApiClient
       "fwId",
       "oemId",
       "hw_ver",
-      "rssi"
+      "rssi",
+      "led_off"
     );
 
     foreach($system as $key => $value)
@@ -116,6 +117,39 @@ class KKPAPlugApiClient extends KKPAApiClient
   {
     $sysinfo = $this->getSysInfo("relay_state");
     return $sysinfo['relay_state'];
+  }
+
+  public function setLedState($state)
+  {
+    $state = boolval($state);
+    if (!$state) $state = 1; else $state = 0;
+    $requestData = json_encode(array("system" => array("set_led_off" => array("off" => $state))));
+    $param = json_encode(
+      array(
+        "method"=>"passthrough",
+        "params"=>array(
+          "deviceId"=>$this->deviceId,
+          "requestData"=>$requestData
+        )
+      )
+    );
+    $this->api("",'POST',$param);
+  }
+
+  public function setLedOn()
+  {
+    $this->setLedState(1);
+  }
+
+  public function setLedOff()
+  {
+    $this->setLedState(0);
+  }
+
+  public function getLedState()
+  {
+    $sysinfo = $this->getSysInfo("led_off");
+    return ($sysinfo['led_off']==0);
   }
 
   public function getRealTime()
