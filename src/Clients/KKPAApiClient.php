@@ -13,7 +13,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"1.1");
+  define('KKPA_VERSION',"1.2");
 
   class KKPAApiClient
   {

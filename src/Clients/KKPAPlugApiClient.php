@@ -56,7 +56,8 @@ class KKPAPlugApiClient extends KKPAApiClient
       "hwId",
       "fwId",
       "oemId",
-      "hw_ver"
+      "hw_ver",
+      "rssi"
     );
 
     foreach($system as $key => $value)

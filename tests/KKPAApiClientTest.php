@@ -155,6 +155,7 @@ final class KKPAApiClientTest extends TestCase
       $device = self::getDevice($client);
       $sysInfo = $device->getSysInfo();
       $this->assertInternalType("string",$sysInfo['alias']);
+      $this->assertInternalType("int",$sysInfo['rssi']);
       //print_r($device->debug_last_request());
     }
 
