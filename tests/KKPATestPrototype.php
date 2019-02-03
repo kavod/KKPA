@@ -128,7 +128,7 @@ class KKPATestPrototype extends TestCase
       }
     }
 
-    public function testApi2(): void
+    public function testSysInfo(): void
     {
       $client = $this::instance(self::$conf);
       $deviceList = $client->getDeviceList();
@@ -136,6 +136,9 @@ class KKPATestPrototype extends TestCase
       {
         $sysInfo = $device->getSysInfo();
         $this->assertInternalType("string",$sysInfo['alias']);
+        $this->assertInternalType("string",$sysInfo['dev_name']);
+        if ($device->getModel()!='HS300')
+          $this->assertGreaterThan(0,strlen($sysInfo['dev_name']));
         $this->assertInternalType("int",$sysInfo['rssi']);
       }
       //print_r($device->debug_last_request());

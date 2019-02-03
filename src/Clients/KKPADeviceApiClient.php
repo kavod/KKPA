@@ -112,6 +112,19 @@ class KKPADeviceApiClient extends KKPAApiClient
     unset($sysinfo['deviceType']);
     unset($sysinfo['mic_type']);
 
+    $sysinfo['dev_name'] = self::getAltAttr(
+      $sysinfo,
+      array('dev_name','description'),
+      ''
+    );
+    unset($sysinfo['description']);
+
+    $sysinfo['fwId'] = self::getAltAttr(
+      $sysinfo,
+      array('fwId'),
+      ''
+    );
+
     $sysinfo['longitude'] = self::getAltAttr(
       $sysinfo,
       array('longitude','longitude_i'),
