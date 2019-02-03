@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"1.3");
+  define('KKPA_VERSION',"2.0");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -32,13 +32,13 @@
     protected $cloud = false;
     protected $local_ip = '';
 
-    protected const REQ_SYSINFO = array(
+    const REQ_SYSINFO = array(
       "system"=>array(
         "get_sysinfo"=>NULL
       )
     );
 
-    protected const REQ_DEVICELIST = array("method" => "getDeviceList");
+    const REQ_DEVICELIST = array("method" => "getDeviceList");
 
     public static function getVersion() {
       return KKPA_VERSION;
@@ -257,7 +257,7 @@
     }
 
     // Network functions (Cloud & Local)
-    protected function send($request_arr):array
+    protected function send($request_arr)
     {
       $cloud = $this->getVariable('cloud',true);
       $deviceId = $this->getVariable('deviceId',null);
@@ -705,7 +705,7 @@
         return $clear_text;
     }
 
-    protected function makeLocalRequest($requestData):array
+    protected function makeLocalRequest($requestData)
     {
       $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
       $data = '';
@@ -727,7 +727,7 @@
       return json_decode($decrypt,true);
     }
 
-    protected function makeBroadcastRequest():array
+    protected function makeBroadcastRequest()
     {
       $request_arr = self::REQ_SYSINFO;
       $request_json = json_encode($request_arr);
