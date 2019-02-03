@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * KKPA Api Client by Kavod
+ *
+ */
   namespace KKPA\Clients;
 
   use KKPA\Exceptions\KKPASDKException;
@@ -14,29 +17,105 @@
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
   define('KKPA_VERSION',"1.3");
+  define('KKPA_LOCAL_TIMEOUT',2);
+  define('KKPA_BROADCAST_IP','255.255.255.255');
+  define('KKPA_DEFAULT_PORT',9999);
 
   class KKPAApiClient
   {
-    protected $conf = array();
+    public $conf = array();
     protected $token;
-    protected $expires_at;
     protected $last_request = "";
     protected $last_result = "";
     protected $last_errno = 0;
     protected $uuid = "";
+    protected $cloud = false;
+    protected $local_ip = '';
+
+    protected const REQ_SYSINFO = array(
+      "system"=>array(
+        "get_sysinfo"=>NULL
+      )
+    );
+
+    protected const REQ_DEVICELIST = array("method" => "getDeviceList");
 
     public static function getVersion() {
       return KKPA_VERSION;
     }
 
-    public function debug_last_request() {
-      return array(
-        "request" => $this->last_request,
-        "result" => $this->last_result,
-        "errno" => $this->last_errno
-      );
-    }
+    /**
+    * Default options for cURL.
+    */
+    public static $CURL_OPTS = array(
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_RETURNTRANSFER => TRUE,
+        CURLOPT_HEADER         => TRUE,
+        CURLOPT_TIMEOUT        => 60,
+        CURLOPT_USERAGENT      => 'Kasa_Android',
+        CURLOPT_SSL_VERIFYPEER => TRUE,
+        CURLOPT_HTTPHEADER     => array(
+            "Content-Type: application/json"
+          )
+    );
 
+    /**
+    * Initialize a KKPA Client.
+    *
+    * @param $config
+    *   An associative array as below:
+    *   - code: (optional) The authorization code.
+    *   - username: (optional) The username.
+    *   - password: (optional) The password.
+    *   - token: (optional) Stored token
+    *   - uuid: (optional) Stored uuid
+    *   - cloud: (optional) Is cloud used?
+    */
+    public function __construct($config = array())
+    {
+        if(array_key_exists('cloud',$config))
+        {
+          $this->cloud = boolval($config["cloud"]);
+        } else {
+            $this->cloud = true;
+        }
+        if ($this->cloud)
+        {
+          // If tokens are provided let's store it
+          if(isset($config["token"]))
+          {
+              $this->token = $config["token"];
+              unset($token);
+          }
+          if (isset($config["uuid"]))
+          {
+              $this->uuid = $config["uuid"];
+          } else {
+              $this->uuid = self::guidv4();
+          }
+          $this->setVariable('base_uri',TPLINK_BASE_URI);
+
+          if($this->getVariable("code") == null && isset($_GET["code"]))
+          {
+              $this->setVariable("code", $_GET["code"]);
+          }
+        } else {
+          if (array_key_exists('local_ip',$config))
+          {
+              $this->local_ip = $config["local_ip"];
+          }
+          if (array_key_exists('local_port',$config))
+          {
+              $this->local_port = $config["local_port"];
+          }
+        }
+        // Other else configurations.
+        foreach ($config as $name => $value)
+        {
+            $this->setVariable($name, $value);
+        }
+    }
+    // Getters
     /**
      * Returns a persistent variable.
      *
@@ -52,8 +131,50 @@
      */
     public function getVariable($name, $default = NULL)
     {
-        return isset($this->conf[$name]) ? $this->conf[$name] : $default;
+        return array_key_exists($name,$this->conf) ? $this->conf[$name] : $default;
     }
+
+    public function getClass() {
+        $path = explode('\\', get_class($this));
+        return array_pop($path);
+    }
+
+    static protected function getAltAttr($json,$keys,$default=null)
+    {
+      foreach($keys as $key)
+      {
+        if (array_key_exists($key,$json))
+          return $json[$key];
+      }
+      if(is_null($default))
+      {
+        throw new KKPAClientException(
+          997,
+          "Cannot determine ".$keys[0]."\n".print_r($json,true),
+          "Error"
+        );
+      } else
+      {
+        return $default;
+      }
+    }
+
+    static protected function readType($sysinfo)
+    {
+      return self::getAltAttr($sysinfo,array('deviceType','mic_type','type'));
+    }
+
+    static protected function readModel($sysinfo)
+    {
+      return self::getAltAttr($sysinfo,array('model','deviceModel'));
+    }
+
+    static protected function getErrorCode($response)
+    {
+      return self::getAltAttr($response,array('error_code','err_code'));
+    }
+
+    // Setters
 
     /**
     * Sets a persistent variable.
@@ -71,13 +192,60 @@
         return $this;
     }
 
+    // Debug functions
+    protected function setLastRequest($request_arr)
+    {
+      $this->last_request = $this->anonymizeUserPass($request_arr);
+      $this->last_result = "";
+      $this->last_errno = 0;
+    }
+
+    protected function anonymizeUserPass($str)
+    {
+      return str_replace(
+        $this->getVariable('password'),
+        '*****',
+        str_replace(
+          $this->getVariable('username'),
+          '*****',
+          $str
+        )
+      );
+    }
+
+    protected function setLastResponse($result,$errno)
+    {
+      //print_r($result);
+      $this->last_result = preg_replace(
+        '/((?:\\\\)?)\"(latitude|longitude)(_i)?((?:\\\\)?)\":(?:(?:\\\\)?\")?(?:-?\d+(?:\.\d+)?)(?:(?:\\\\)?\")?(,|\})/',
+        '${1}"${2}${3}${4}":0${5}',
+        str_replace(
+          $this->getVariable('username'),
+          '*****',
+          print_r($result,true)
+        )
+      );
+      //print_r($this->last_result);
+      $this->last_errno = $errno;
+    }
+
+    public function debug_last_request() {
+      return array(
+        "request" => $this->last_request,
+        "result" => $this->last_result,
+        "errno" => $this->last_errno
+      );
+    }
+
     public function toArray() {
       return array(
         'conf' => array(
-          'base_uri' => $this->getVariable('base_uri',''),
+          'base_uri' => TPLINK_BASE_URI,
           'username' => ($this->getVariable('username','')!='') ? '*****' : '',
           'password' => ($this->getVariable('password','')!='') ? '*****' : '',
-          'deviceId' => $this->getVariable('deviceId','')
+          'deviceId' => $this->getVariable('deviceId',''),
+          'local_ip' => $this->getVariable('local_ip',''),
+          'local_port' => $this->getVariable('local_port','')
         ),
         'token' => $this->token,
         'uuid' => $this->uuid
@@ -88,172 +256,240 @@
       return print_r($this->toArray(),true);
     }
 
-    private function updateSession()
+    // Network functions (Cloud & Local)
+    protected function send($request_arr):array
     {
-        $cb = $this->getVariable("func_cb");
-        $object = $this->getVariable("object_cb");
-        if($object && $cb)
+      $cloud = $this->getVariable('cloud',true);
+      $deviceId = $this->getVariable('deviceId',null);
+      $requestData = $this->makeRequestData($request_arr);
+      if ($cloud)
+      {
+        try
         {
-            if(method_exists($object, $cb))
-            {
-            call_user_func_array(array($object, $cb), array(array("token"=> $this->token)));
-            }
+            $token = $this->getAccessToken();
         }
-        else if($cb && is_callable($cb))
+        catch(KKPAApiErrorType $ex)
         {
-        call_user_func_array($cb, array(array("token" => $this->token)));
+            throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
         }
+        $result = $this->makeRequest($requestData);
+        $result = self::extractCloudResponse($result);
+      } else
+      {
+        $result = $this->makeLocalRequest($requestData);
+      }
+      $result = self::extractResponse($result,$request_arr);
+      self::checkErrorCode($result);
+      return $result;
     }
 
-    private function setTokens($value)
+    public function getDeviceList()
     {
-        if(!isset($value['error_code']) || $value['error_code'] != 0)
+      if ($this->cloud)
+      {
+        $json_request = json_encode(self::REQ_DEVICELIST);
+        $this->setLastRequest($json_request);
+        $result = $this->makeOAuth2Request($json_request);
+        self::checkErrorCode($result);
+        if(!array_key_exists('result',$result))
         {
-          throw new KKPAClientException($value['error_code'],"Error retrieving token","Error");
+          throw new KKPAClientException(999,"No response content: ".print_r($result,true),"Error");
         }
-        if(isset($value["result"]) && isset($value['result']['token']))
+        $result = $result['result'];
+      } else
+      {
+        $result = self::makeBroadcastRequest();
+      }
+      $devices = array();
+      $conf = $this->conf;
+      foreach($result['deviceList'] as $device)
+      {
+        switch(self::readType($device))
         {
-            $this->token = $value['result']['token'];
-            $this->accountId = $value['result']['accountId'];
-            $update = true;
+          case "IOT.SMARTPLUGSWITCH":
+            $conf["deviceId"] = $device['deviceId'];
+            if ($this->cloud)
+            {
+            } else
+            {
+              $conf['local_ip'] = $device['local_ip'];
+              $conf['local_port'] = $device['local_port'];
+              $conf['cloud'] = false;
+            }
+            // HS300 ?
+            if (substr(self::readModel($device),0,5)=='HS300')
+            {
+              //break;
+              $devices[] = new KKPAMultiPlugApiClient($conf);
+              break;
+            } else
+            {
+              $devices[] = new KKPAPlugApiClient($conf);
+              break;
+            }
+            break;
+
+          case "IOT.SMARTBULB":
+            $conf["deviceId"] = $device['deviceId'];
+            if ($this->cloud)
+            {
+            } else
+            {
+              $conf['local_ip'] = $device['local_ip'];
+              $conf['local_port'] = $device['local_port'];
+              $conf['cloud'] = false;
+            }
+            $devices[] = new KKPABulbApiClient($conf);
+            break;
         }
-        if(isset($value["expires_in"]))
-        {
-            $this->expires_at = time() + $value["expires_in"] - 30;
-        }
-        if(isset($update)) $this->updateSession();
-    }
-    /**
-     * Set token stored by application (in session generally) into this object
-    **/
-    public function setTokensFromStore($value)
-    {
-        if(isset($value["token"]))
-            $this->token = $value["token"];
-    }
-    public function unsetTokens()
-    {
-        $this->token = null;
-        $this->expires_at = null;
+      }
+      return $devices;
     }
 
-    /**
-    * Initialize a KKPA OAuth2.0 Client.
-    *
-    * @param $config
-    *   An associative array as below:
-    *   - code: (optional) The authorization code.
-    *   - username: (optional) The username.
-    *   - password: (optional) The password.
-    *   - client_id: (optional) The application ID.
-    *   - client_secret: (optional) The application secret.
-    *   - refresh_token: (optional) A stored refresh_token to use
-    *   - access_token: (optional) A stored access_token to use
-    *   - object_cb : (optionale) An object for which func_cb method will be applied if object_cb exists
-    *   - func_cb : (optional) A method called back to store tokens in its context (session for instance)
-    */
-    public function __construct($config = array())
+    public static function extractResponse($response,$request)
     {
-        // If tokens are provided let's store it
-        if(isset($config["token"]))
-        {
-            $this->token = $config["token"];
-            unset($token);
-        }
-        if (isset($config["uuid"]))
-        {
-            $this->uuid = $config["uuid"];
-        } else {
-            $this->uuid = self::guidv4();
-        }
-        // We must set uri first.
-        $uri = array("base_uri" => TPLINK_BASE_URI);
-        foreach($uri as $key => $val)
-        {
-            if(isset($config[$key]))
-            {
-                $this->setVariable($key, $config[$key]);
-                unset($config[$key]);
-            }
-            else
-            {
-                $this->setVariable($key, $val);
-            }
-        }
-        if(isset($config['scope']) && is_array($config['scope']))
-        {
-            foreach($config['scope'] as $scope)
-            {
-                trim($scope);
-            }
-            $scope = implode(' ', $config['scope']);
-            $this->setVariable('scope', $scope);
-            unset($config['scope']);
-        }
-        // Other else configurations.
-        foreach ($config as $name => $value)
-        {
-            $this->setVariable($name, $value);
-        }
-        if($this->getVariable("code") == null && isset($_GET["code"]))
-        {
-            $this->setVariable("code", $_GET["code"]);
-        }
-    }
-    /**
-   * Default options for cURL.
-   */
-    public static $CURL_OPTS = array(
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_RETURNTRANSFER => TRUE,
-        CURLOPT_HEADER         => TRUE,
-        CURLOPT_TIMEOUT        => 60,
-        CURLOPT_USERAGENT      => 'Kasa_Android',
-        CURLOPT_SSL_VERIFYPEER => TRUE,
-        CURLOPT_HTTPHEADER     => array(
-            "Content-Type: application/json"
+      if (
+        is_array($request)
+        && count($request)>0
+        && (
+          is_array($request[array_keys($request)[0]])
+          || is_null($request[array_keys($request)[0]])
           )
-    );
+      )
+      {
+        $key = array_keys($request)[0];
+        if (!isset($response[$key]))
+          throw new \Exception('Exception:'.$key."\n".print_r($response,true));
+        return self::extractResponse($response[$key],$request[$key]);
+      } else {
+        return $response;
+      }
+    }
+
+    protected static function checkErrorCode($response)
+    {
+      $error_code = self::getErrorCode($response);
+      $msg = self::getAltAttr($response,array('msg'),'');
+      if(!isset($error_code))
+      {
+          throw new KKPAClientException($error_code,"Error ".$error_code,"Error");
+      }
+      if($error_code == KKPA_DEVICE_OFFLINE) // KKPA_DEVICE_OFFLINE -20571
+      {
+          throw new KKPADeviceException($error_code,"Device is offline","Error");
+      }
+      if($error_code == KKPA_TIMEOUT) // KKPA_TIMEOUT -20002
+      {
+          throw new KKPADeviceException($error_code,"Request timeout","Error");
+      }
+      if($error_code == KKPA_NOT_BINDED) // KKPA_NOT_BINDED -20580
+      {
+          throw new KKPADeviceException($error_code,"Account is not binded to the device","Error");
+      }
+      if($error_code !=0)
+      {
+          throw new KKPAClientException($error_code,"Error ($error_code)\n$msg","Error");
+      }
+    }
+
+    protected function makeRequestData($request_arr)
+    {
+      $json = json_encode($request_arr);
+      if ($this->cloud)
+      {
+        $deviceId = $this->getVariable('deviceId',null);
+        if (is_null($deviceId))
+          throw new KKPAApiErrorType(996,"Missing or incorrect format for deviceId","Error");
+        $request_json = json_encode(
+          array(
+            "method"=>"passthrough",
+            "params"=>array(
+              "deviceId"=>$deviceId,
+              "requestData"=>$json
+            )
+          )
+        );
+        $this->setLastRequest($request_json);
+        return $request_json;
+      } else
+      {
+        $this->setLastRequest($json);
+        return self::tp_encrypt($json);
+      }
+    }
+
+    // Cloud methods
+    /**
+    * Make an OAuth2.0 Request.
+    *
+    * Automatically append "access_token" in query parameters
+    *
+    * @param $params
+    *   (optional The POST parameters.
+    *
+    * @return
+    *   The JSON decoded response object.
+    *
+    * @throws OAuth2Exception
+    */
+    protected function makeOAuth2Request($params = array(), $reget_token = true)
+    {
+        try
+        {
+            $token = $this->getAccessToken();
+        }
+        catch(KKPAApiErrorType $ex)
+        {
+            throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
+        }
+        try
+        {
+            $res = $this->makeRequest($params);
+            return $res;
+        }
+        catch(KKPAApiErrorType $ex)
+        {
+            if($reget_token == true)
+            {
+                switch($ex->getCode())
+                {
+                    case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
+                    case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
+                        throw $ex;
+                        return $this->makeOAuth2Request($params, false);
+                    break;
+                    default:
+                        throw $ex;
+                }
+            }
+            else throw $ex;
+        }
+        return $res;
+    }
+
     /**
     * Makes an HTTP request.
     *
     * This method can be overriden by subclasses if developers want to do
     * fancier things or use something other than cURL to make the request.
     *
-    * @param $path
-    *   The target path, relative to base_path/service_uri or an absolute URI.
-    * @param $method
-    *   (optional) The HTTP method (default 'GET').
     * @param $params
     *   (optional The GET/POST parameters.
-    * @param $ch
-    *   (optional) An initialized curl handle
     *
     * @return
     *   The json_decoded result or KKPAClientException if pb happend
     */
-    public function makeRequest($path, $method = 'POST', $params = array())
+    public function makeRequest($params = array())
     {
         $ch = curl_init();
         $opts = self::$CURL_OPTS;
         if ($params)
         {
-            if(isset($this->token))
-            {
-                $path .= '?token=' . $this->token;
-            }
-            switch ($method)
-            {
-                case 'GET':
-                    $path .= '?' . http_build_query($params, NULL, '&');
-                break;
-                // Method override as we always do a POST.
-                default:
-                    $opts[CURLOPT_POSTFIELDS] = $params;
-                break;
-            }
+            $opts[CURLOPT_POSTFIELDS] = $params;
         }
-        $opts[CURLOPT_URL] = $path;
+        $opts[CURLOPT_URL] = TPLINK_BASE_URI . (
+          (isset($this->token)) ? '?token=' . $this->token : ''
+        );
         // Disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
         // for 2 seconds if the server does not support this header.
         if (isset($opts[CURLOPT_HTTPHEADER]))
@@ -269,34 +505,10 @@
         {
             $opts[CURLOPT_HTTPHEADER] = array('Expect:');
         }
-        $this->last_request = str_replace(
-          $this->getVariable('password'),
-          '*****',
-          str_replace(
-            $this->getVariable('username'),
-            '*****',
-            print_r($opts,true)
-          )
-        );
-        $this->last_result = "";
-        $this->last_errno = 0;
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
-        $this->last_result = preg_replace(
-          '/\\\"(latitude(_i)?)\\\":(-?\d+(\.\d+)?)(,|\})/',
-          '\\"$1\\":0${5}',
-          preg_replace(
-            '/\\\"(longitude(_i)?)\\\":(-?\d+(\.\d+)?)(,|\})/',
-            '\\"$1\\":0${5}',
-            str_replace(
-              $this->getVariable('username'),
-              '*****',
-              $result
-            )
-          )
-        );
-        $this->last_errno = $errno;
+        $this->setLastResponse($result,$errno);
         // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
         if ($errno == 60 || $errno == 77)
         {
@@ -342,6 +554,21 @@
             throw new KKPAApiErrorType($matches[1], $matches[2], $decode);
         }
     }
+
+    // Cloud - Auth
+    private function setTokens($value)
+    {
+        if(!isset($value['error_code']) || $value['error_code'] != 0)
+        {
+          throw new KKPAClientException($value['error_code'],"Error retrieving token","Error");
+        }
+        if(isset($value["result"]) && isset($value['result']['token']))
+        {
+            $this->token = $value['result']['token'];
+            $this->accountId = $value['result']['accountId'];
+        }
+    }
+
     /**
     * Retrieve an access token following the best grant to recover it (order id : code, refresh_token, password)
     *
@@ -355,59 +582,15 @@
         //find best way to retrieve access_token
         if($this->token)
         {
-            if(!is_null($this->expires_at) && $this->expires_at < time()) // access_token expired.
-            {
-                throw new KKPAInternalErrorType("Access token expired");
-            }
             return array("token" => $this->token);
         }
-        if($this->getVariable('code'))// grant_type == authorization_code.
-        {
-            return $this->getAccessTokenFromAuthorizationCode($this->getVariable('code'));
-        }
-        else if($this->getVariable('username') && $this->getVariable('password'))  //grant_type == password
+        if($this->getVariable('username') && $this->getVariable('password'))  //grant_type == password
         {
             return $this->getAccessTokenFromPassword($this->getVariable('username'), $this->getVariable('password'));
         }
-        else throw new KKPAInternalErrorType("No access token stored");
+        else throw new KKPAInternalErrorType("No access token");
     }
 
-    /**
-    * Get access token from OAuth2.0 token endpoint with authorization code.
-    *
-    * This function will only be activated if both access token URI, client
-    * identifier and client secret are setup correctly.
-    *
-    * @param $code
-    *   Authorization code issued by authorization server's authorization
-    *   endpoint.
-    *
-    * @return
-    *   A valid OAuth2.0 JSON decoded access token in associative array
-    * @thrown
-    *  A KKPAClientException if unable to retrieve an access_token
-    */
-    private function getAccessTokenFromAuthorizationCode($code)
-    {
-        $scope = $this->getVariable('scope');
-        if($this->getVariable('base_uri') && ($client_id = $this->getVariable('client_id')) != NULL && ($client_secret = $this->getVariable('client_secret')) != NULL)
-        {
-            $ret = $this->makeRequest($this->getVariable('base_uri'),
-                'POST',
-                array(
-                    'grant_type' => 'authorization_code',
-                    'client_id' => $client_id,
-                    'client_secret' => $client_secret,
-                    'code' => $code,
-                    'scope' => $scope,
-                )
-            );
-            $this->setTokens($ret);
-            return $ret;
-        }
-        else
-            throw new KKPAInternalErrorType("missing args for getting authorization code grant");
-    }
   /**
    * Get access token from OAuth2.0 token endpoint with basic user
    * credentials.
@@ -427,250 +610,44 @@
    */
     private function getAccessTokenFromPassword($username, $password)
     {
-        $scope = $this->getVariable('scope');
-        if ($this->getVariable('base_uri'))
+        if ($username && $password)
         {
-          $params = json_encode(
-                    array(
-                      "method" => "login",
-                      "params" => array(
-                        "appType" => "Kasa_Android",
-                        "cloudPassword" => $password,
-                        "cloudUserName" => $username,
-                        "terminalUUID" => $this->uuid
-                      )
-                    )
-                  );
-            $ret = $this->makeRequest(
-                $this->getVariable('base_uri'),
-                'POST',
-                $params
-            );
-            $this->setTokens($ret);
-            return $this->token;
+          $request_arr = array(
+            "method" => "login",
+            "params" => array(
+              "appType" => "Kasa_Android",
+              "cloudPassword" => $password,
+              "cloudUserName" => $username,
+              "terminalUUID" => $this->uuid
+            )
+          );
+          $params = json_encode($request_arr);
+          $ret = $this->makeRequest(
+              $params
+          );
+
+          $this->setTokens($ret);
+          return $this->token;
         }
         else
             throw new KKPAInternalErrorType("missing args for getting password grant");
     }
 
-    /**
-    * Make an OAuth2.0 Request.
-    *
-    * Automatically append "access_token" in query parameters
-    *
-    * @param $path
-    *   The target path, relative to base_path/service_uri
-    * @param $method
-    *   (optional) The HTTP method (default 'GET').
-    * @param $params
-    *   (optional The GET/POST parameters.
-    *
-    * @return
-    *   The JSON decoded response object.
-    *
-    * @throws OAuth2Exception
-    */
-    protected function makeOAuth2Request($path, $method = 'POST', $params = array(), $reget_token = true)
+    public static function extractCloudResponse($response)
     {
-        try
-        {
-            $token = $this->getAccessToken();
-        }
-        catch(KKPAApiErrorType $ex)
-        {
-            throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
-        }
-        try
-        {
-            $res = $this->makeRequest($path, $method, $params);
-            return $res;
-        }
-        catch(KKPAApiErrorType $ex)
-        {
-            if($reget_token == true)
-            {
-                switch($ex->getCode())
-                {
-                    case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
-                    case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
-                        throw $ex;
-                        return $this->makeOAuth2Request($path, $method, $params, false);
-                    break;
-                    default:
-                        throw $ex;
-                }
-            }
-            else throw $ex;
-        }
-        return $res;
-    }
-    /**
-     * Make an API call.
-     *
-     * Support both OAuth2.0 or normal GET/POST API call, with relative
-     * or absolute URI.
-     *
-     * If no valid OAuth2.0 access token found in session object, this function
-     * will automatically switch as normal remote API call without "access_token"
-     * parameter.
-     *
-     * Assume server reply in JSON object and always decode during return. If
-     * you hope to issue a raw query, please use makeRequest().
-     *
-     * @param $path
-     *   The target path, relative to base_path/service_uri or an absolute URI.
-     * @param $method
-     *   (optional) The HTTP method (default 'GET').
-     * @param $params
-     *   (optional The GET/POST parameters.
-     *
-     * @return
-     *   The JSON decoded body response object.
-     *
-     * @throws KKPAClientException
-    */
-    public function api($path, $method = 'POST', $params = array(), $secure = false)
-    {
-      $res = $this->makeOAuth2Request($this->getUri($path, array(), $secure), $method, $params);
-      if(!isset($res['error_code']))
+      self::checkErrorCode($response);
+      if(!array_key_exists('result',$response))
       {
-          throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");
+        throw new KKPAClientException(999,"No response content: ".print_r($response,true),"Error");
       }
-      if($res['error_code'] == KKPA_DEVICE_OFFLINE) // KKPA_DEVICE_OFFLINE -20571
+      if(!array_key_exists('responseData',$response['result']))
       {
-          throw new KKPADeviceException($res['error_code'],"Device is offline","Error");
+        throw new KKPAClientException(998,"No response content: ".print_r($response,true),"Error");
       }
-      if($res['error_code'] == KKPA_TIMEOUT) // KKPA_TIMEOUT -20002
-      {
-          throw new KKPADeviceException($res['error_code'],"Request timeout","Error");
-      }
-      if($res['error_code'] == KKPA_NOT_BINDED) // KKPA_NOT_BINDED -20580
-      {
-          throw new KKPADeviceException($res['error_code'],"Account is not binded to the device","Error");
-      }
-      if($res['error_code'] !=0)
-      {
-          throw new KKPAClientException($res['error_code'],"Error ".$res['error_code'],"Error");
-      }
-      if(isset($res["result"])) return $res["result"];
-      else return $res;
+      return json_decode($response['result']['responseData'],true);
     }
 
-    static public function str_replace_once($str_pattern, $str_replacement, $string)
-    {
-        if (strpos($string, $str_pattern) !== false)
-        {
-            $occurrence = strpos($string, $str_pattern);
-            return substr_replace($string, $str_replacement, strpos($string, $str_pattern), strlen($str_pattern));
-        }
-        return $string;
-    }
-    /**
-    * Since $_SERVER['REQUEST_URI'] is only available on Apache, we
-    * generate an equivalent using other environment variables.
-    */
-    function getRequestUri()
-    {
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $uri = $_SERVER['REQUEST_URI'];
-        }
-        else {
-            if (isset($_SERVER['argv'])) {
-                $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['argv'][0];
-            }
-            elseif (isset($_SERVER['QUERY_STRING'])) {
-                $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['QUERY_STRING'];
-            }
-            else {
-                $uri = $_SERVER['SCRIPT_NAME'];
-            }
-        }
-        // Prevent multiple slashes to avoid cross site requests via the Form API.
-        $uri = '/' . ltrim($uri, '/');
-        return $uri;
-    }
-  /**
-   * Returns the Current URL.
-   *
-   * @return
-   *   The current URL.
-   */
-    protected function getCurrentUri()
-    {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'
-          ? 'https://'
-          : 'http://';
-        $current_uri = $protocol . $_SERVER['HTTP_HOST'] . $this->getRequestUri();
-        $parts = parse_url($current_uri);
-        $query = '';
-        if (!empty($parts['query'])) {
-          $params = array();
-          parse_str($parts['query'], $params);
-          $params = array_filter($params);
-          if (!empty($params)) {
-            $query = '?' . http_build_query($params, NULL, '&');
-          }
-        }
-        // Use port if non default.
-        $port = isset($parts['port']) &&
-          (($protocol === 'http://' && $parts['port'] !== 80) || ($protocol === 'https://' && $parts['port'] !== 443))
-          ? ':' . $parts['port'] : '';
-        // Rebuild.
-        return $protocol . $parts['host'] . $port . $parts['path'] . $query;
-    }
-    /**
-    * Build the URL for given path and parameters.
-    *
-    * @param $path
-    *   (optional) The path.
-    * @param $params
-    *   (optional) The query parameters in associative array.
-    *
-    * @return
-    *   The URL for the given parameters.
-    */
-    protected function getUri($path = '', $params = array(), $secure = false)
-    {
-        $url = $this->getVariable('base_uri');
-        if($secure == true)
-        {
-            $url = self::str_replace_once("http", "https", $url);
-        }
-        if(!empty($path))
-            if (substr($path, 0, 4) == "http")
-                $url = $path;
-            else if(substr($path, 0, 5) == "https")
-                $url = $path;
-            else
-                $url = rtrim($url, '/') . '/' . ltrim($path, '/');
-        if (!empty($params))
-            $url .= '?' . http_build_query($params, NULL, '&');
-        return $url;
-    }
-    public function getPartnerDevices()
-    {
-        return $this->api("partnerdevices", "POST");
-    }
-
-    public function getDeviceList()
-    {
-      $result = $this->api("",'POST',json_encode(array("method" => "getDeviceList")))['deviceList'];
-      $devices = array();
-      $conf = $this->conf;
-      foreach($result as $device)
-      {
-        switch($device['deviceType'])
-        {
-          case "IOT.SMARTPLUGSWITCH":
-            $conf["deviceId"] = $device['deviceId'];
-            $devices[] = new KKPAPlugApiClient($conf);
-            break;
-        }
-      }
-      return $devices;
-    }
-
-    public static function guidv4()
+    protected static function guidv4()
     {
       if (version_compare(PHP_VERSION,'7','<'))
       {
@@ -684,6 +661,100 @@
       $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
 
       return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
+    // Local methods
+    // Inspired by https://github.com/RobertShippey/hs100-php-api/blob/master/utils.php
+    protected static function tp_encrypt($clear_text, $tcp=true, $first_key = 0xAB) {
+        $buf = unpack('c*', $clear_text);
+        $key = $first_key;
+        for ($i = 1; $i < count($buf) + 1; $i++) {
+            $buf[$i] = $buf[$i] ^ $key;
+            $key = $buf[$i];
+        }
+        $array_map = array_map('chr', $buf);
+        $clear_text = implode('', $array_map);
+        $length = strlen($clear_text);
+        $header = ($tcp) ? pack('N*', $length) : '';
+        return $header . $clear_text;
+    }
+
+    protected static function tp_decrypt($cypher_text, $tcp=true, $first_key = 0xAB) {
+      if ($tcp)
+      {
+        $header = substr($cypher_text, 0, 4);
+        $header_length = unpack('N*', $header)[1];
+        $cypher_text = substr($cypher_text, 4);
+      } else {
+        $header_length = strlen($cypher_text);
+      }
+        $buf = unpack('c*', $cypher_text);
+        $key = $first_key;
+        $nextKey;
+        for ($i = 1; $i < count($buf) + 1; $i++) {
+            $nextKey = $buf[$i];
+            $buf[$i] = $buf[$i] ^ $key;
+            $key = $nextKey;
+        }
+        $array_map = array_map('chr', $buf);
+        $clear_text = implode('', $array_map);
+        $cypher_length = strlen($clear_text);
+        if ($header_length !== $cypher_length) {
+            trigger_error("Length in header ({$header_length}) doesn't match actual message length ({$cypher_length}).");
+        }
+        return $clear_text;
+    }
+
+    protected function makeLocalRequest($requestData):array
+    {
+      $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+      $data = '';
+      $out = '';
+      socket_connect($sock, $this->local_ip, $this->local_port);
+      socket_write($sock, $requestData, strlen($requestData));
+      $out = socket_read($sock, 2048);
+      while ($out && $out!='') {
+          $data .= $out;
+          $decrypt = self::tp_decrypt($data,true);
+          if (strlen($decrypt)>0 && (substr_count($decrypt,'{')==substr_count($decrypt,'}')))
+            break;
+          else
+            $out = socket_read($sock, 2048);
+      }
+      socket_close($sock);
+      $decrypt = self::tp_decrypt($data,true);
+      $this->setLastResponse($decrypt,socket_last_error());
+      return json_decode($decrypt,true);
+    }
+
+    protected function makeBroadcastRequest():array
+    {
+      $request_arr = self::REQ_SYSINFO;
+      $request_json = json_encode($request_arr);
+
+      $this->setLastRequest($request_json);
+      $requestData = self::tp_encrypt($request_json,false);
+
+      $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+      socket_set_option($sock, SOL_SOCKET, SO_BROADCAST, 1);
+      socket_set_option($sock, SOL_SOCKET, SO_RCVTIMEO, array("sec"=>KKPA_LOCAL_TIMEOUT, "usec"=>0));
+      socket_sendto($sock, $requestData, strlen($requestData), 0, KKPA_BROADCAST_IP, KKPA_DEFAULT_PORT);
+      $result = array();
+      while(true) {
+        $ret = @socket_recvfrom($sock, $buf, 128*1024, 0, $local_ip, $local_port);
+        if($ret === false) break;
+        $response = self::tp_decrypt($buf,false);
+        $data = json_decode($response,true);
+        $data = self::extractResponse($data,$request_arr);
+        $data['local_ip'] = $local_ip;
+        $data['local_port'] = $local_port;
+        $this->setLastResponse($response,socket_last_error());
+        $result[] = $data;
+      }
+      sleep(KKPA_LOCAL_TIMEOUT);
+      return array(
+          "deviceList" => $result
+      );
     }
 }
  ?>

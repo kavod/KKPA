@@ -1,13 +1,32 @@
 <?php
 namespace KKPA\Clients;
 
-class KKPAPlugApiClient extends KKPADeviceApiClient
+use KKPA\Exceptions\KKPASDKException;
+use KKPA\Exceptions\KKPAClientException;
+use KKPA\Exceptions\KKPADeviceException;
+use KKPA\Exceptions\KKPAApiErrorType;
+use KKPA\Exceptions\KKPACurlErrorType;
+use KKPA\Exceptions\KKPAJsonErrorType;
+use KKPA\Exceptions\KKPAInternalErrorType;
+use KKPA\Exceptions\KKPANotLoggedErrorType;
+use KKPA\Common\KKPARestErrorCode;
+
+class KKPABulbApiClient extends KKPADeviceApiClient
 {
   public function setRelayState($state)
   {
     $state = boolval($state);
     if ($state) $state = 1; else $state = 0;
-    $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
+    $request_arr = array(
+      "smartlife.iot.smartbulb.lightingservice" => array(
+        "transition_light_state" => array(
+          "ignore_default" => 0,
+          "mode" => "normal",
+          "on_off" => $state,
+          "transition_period" => 0
+        )
+      )
+    );
     $this->send($request_arr);
   }
 
@@ -25,41 +44,11 @@ class KKPAPlugApiClient extends KKPADeviceApiClient
   {
     if ($this->is_featured('TIM'))
     {
-      $sysinfo = $this->getSysInfo("relay_state");
-      return $sysinfo['relay_state'];
+      $sysinfo = $this->getSysInfo("light_state");
+      return $sysinfo['light_state']['on_off'];
     } else {
       return null;
     }
-  }
-
-  public function setLedState($state)
-  {
-    $state = boolval($state);
-    if (!$state) $state = 1; else $state = 0;
-    $request_arr = array("system" => array("set_led_off" => array("off" => $state)));
-    $this->send($request_arr);
-  }
-
-  public function setLedOn()
-  {
-    $this->setLedState(1);
-  }
-
-  public function setLedOff()
-  {
-    $this->setLedState(0);
-  }
-
-  public function getLedState()
-  {
-    if ($this->is_featured('TIM'))
-    {
-      $sysinfo = $this->getSysInfo("led_off");
-      return ($sysinfo['led_off']==0);
-    } else {
-      return null;
-    }
-
   }
 
   public function getRealTime()
@@ -100,7 +89,9 @@ class KKPAPlugApiClient extends KKPADeviceApiClient
 
   public function is_featured($feature)
   {
-    return (strpos($this->getVariable('feature',''),$feature)!==false);
+    if ($feature=='TIM')
+      return true;
+    return false;
   }
 }
 ?>
