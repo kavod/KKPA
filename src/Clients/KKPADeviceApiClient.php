@@ -119,6 +119,13 @@ class KKPADeviceApiClient extends KKPAApiClient
     );
     unset($sysinfo['description']);
 
+    $sysinfo['mac'] = self::getAltAttr(
+      $sysinfo,
+      array('mac','mic_mac'),
+      ''
+    );
+    unset($sysinfo['mic_mac']);
+
     $sysinfo['fwId'] = self::getAltAttr(
       $sysinfo,
       array('fwId'),
