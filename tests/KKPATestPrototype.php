@@ -262,5 +262,20 @@ class KKPATestPrototype extends TestCase
       }
       //print_r($device->debug_last_request());
     }
+
+    public function testGetLightDetails():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = $client->getDeviceList();
+      foreach($deviceList as $device)
+      {
+        if ($device->getType()=='IOT.SMARTBULB')
+        {
+          $lightDetails = $device->getLightDetails();
+          $this->assertInternalType("int",$lightDetails['wattage']);
+        }
+      }
+      //print_r($device->debug_last_request());
+    }
 }
 ?>
