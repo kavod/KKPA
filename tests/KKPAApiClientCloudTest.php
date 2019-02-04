@@ -18,6 +18,7 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
         "username" => $username,
         "password" => $password
       );
+      parent::setUpBeforeClass();
     }
 
     public function testDebug(): void

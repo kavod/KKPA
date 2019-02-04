@@ -17,6 +17,7 @@ final class KKPAApiClientLocalTest extends \KKPATestPrototype
         "username" => "niouf",
         "password" => "niorf"
       );
+      parent::setUpBeforeClass();
     }
 
 }

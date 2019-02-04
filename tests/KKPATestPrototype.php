@@ -10,16 +10,26 @@ require_once (__ROOT__.'/src/autoload.php');
 class KKPATestPrototype extends TestCase
 {
     protected static $conf;
+    protected static $ref_client;
+    protected static $ref_deviceList;
+
+    public static function setUpBeforeClass()
+    {
+      self::$ref_client = new KKPA\Clients\KKPAApiClient(self::$conf);
+      self::$ref_deviceList = self::$ref_client->getDeviceList(self::$conf);
+    }
 
     public function instance($config = array()): KKPA\Clients\KKPAApiClient
     {
-      $client = new KKPA\Clients\KKPAApiClient($config);
+      //$client = new KKPA\Clients\KKPAApiClient($config);
+      $client = clone self::$ref_client;
       return $client;
     }
 
     public function getDevice($client):KKPA\Clients\KKPADeviceApiClient
     {
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       if (count($deviceList)<1)
         print_r($client->debug_last_request());
       return $deviceList[0];
@@ -53,7 +63,8 @@ class KKPATestPrototype extends TestCase
     public function testGetDeviceList(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       $this->assertInternalType('array',$deviceList);
       foreach($deviceList as $device)
       {
@@ -113,7 +124,8 @@ class KKPATestPrototype extends TestCase
     public function testToString(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         $string = $device->toString();
@@ -131,7 +143,8 @@ class KKPATestPrototype extends TestCase
     public function testSysInfo(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         $sysInfo = $device->getSysInfo();
@@ -147,7 +160,8 @@ class KKPATestPrototype extends TestCase
     public function testSwitchOnOff(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         if ($device->is_featured('TIM'))
@@ -180,7 +194,8 @@ class KKPATestPrototype extends TestCase
     public function testLedOnOff(): void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       $this->assertInternalType('array',$deviceList);
       foreach($deviceList as $device)
       {
@@ -219,7 +234,8 @@ class KKPATestPrototype extends TestCase
     public function testGetRealTime():void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         $realTime = $device->getRealTime();
@@ -236,7 +252,8 @@ class KKPATestPrototype extends TestCase
     public function testIsFeatured():void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         if ($device->getType()=='IOT.SMARTPLUGSWITCH')
@@ -266,7 +283,8 @@ class KKPATestPrototype extends TestCase
     public function testGetLightDetails():void
     {
       $client = $this::instance(self::$conf);
-      $deviceList = $client->getDeviceList();
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         if ($device->getType()=='IOT.SMARTBULB')
