@@ -53,21 +53,26 @@ class KKPABulbApiClient extends KKPADeviceApiClient
 
   public function getRealTime()
   {
-    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    $cur_wattage = $this->getVariable("wattage",0);
+    if ($cur_wattage==0)
+      $cur_wattage = $this->getLightDetails($force=false)['wattage'];
+    $power = doubleval($this->getState()*$cur_wattage);
+    return array("power"=>$power);
+  }
+
+  public function getLightDetails($force=false)
+  {
+    $cur_wattage = $this->getVariable("wattage",0);
+    if($cur_wattage==0)
     {
-      if ($this->is_featured('ENE'))
-      {
-        $request_arr = array("emeter" => array("get_realtime" => NULL));
-        $realtime = $this->send($request_arr);
+      $request_arr = array("smartlife.iot.smartbulb.lightingservice" => array("get_light_details" => NULL));
+      $realtime = $this->send($request_arr);
 
-        $realtime = self::uniformizeRealTime($realtime,'voltage','voltage_mv',1000);
-        $realtime = self::uniformizeRealTime($realtime,'current','current_ma',1000);
-        $realtime = self::uniformizeRealTime($realtime,'power','power_mw',1000);
-        $realtime = self::uniformizeRealTime($realtime,'total','total_wh',1);
+      $this->setVariable("wattage",0);
 
-        return $realtime;
-      }
+      return $realtime;
     }
+    return array("wattage"=>$cur_wattage);
   }
 
   protected static function uniformizeRealTime($realtime,$target,$source,$factor)
@@ -90,6 +95,8 @@ class KKPABulbApiClient extends KKPADeviceApiClient
   public function is_featured($feature)
   {
     if ($feature=='TIM')
+      return true;
+    if ($feature=='ENE')
       return true;
     return false;
   }

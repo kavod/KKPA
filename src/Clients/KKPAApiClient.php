@@ -358,8 +358,9 @@
       )
       {
         $key = array_keys($request)[0];
+        // TODO: proper exception
         if (!isset($response[$key]))
-          throw new \Exception('Exception:'.$key."\n".print_r($response,true));
+          throw new \Exception('Exception:'.$key."\n".print_r($request,true)."\n".print_r($response,true));
         return self::extractResponse($response[$key],$request[$key]);
       } else {
         return $response;
