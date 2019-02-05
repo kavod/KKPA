@@ -191,6 +191,40 @@ class KKPATestPrototype extends TestCase
       //print_r($device->debug_last_request());
     }
 
+    public function testBrightness(): void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->getType()=='IOT.SMARTBULB')
+        {
+          $device->switchOn();
+          $device->setBrightness(100);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getBrightness(),
+            100
+          );
+          $device->setBrightness(50);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getBrightness(),
+            50
+          );
+          $device->setBrightness(100);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getBrightness(),
+            100
+          );
+          $device->switchOff();
+        }
+      }
+      //print_r($device->debug_last_request());
+    }
+
     public function testLedOnOff(): void
     {
       $client = $this::instance(self::$conf);

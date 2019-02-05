@@ -77,7 +77,10 @@ class KKPADeviceApiClient extends KKPAApiClient
       "rssi",
       "led_off",
       "feature",
-      "children"
+      "children",
+      "is_dimmable",
+      "is_color",
+      "is_variable_color_temp"
     );
     $system = self::uniformizeSysinfo($system);
 

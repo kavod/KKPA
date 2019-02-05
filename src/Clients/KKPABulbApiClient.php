@@ -43,6 +43,34 @@ class KKPABulbApiClient extends KKPADeviceApiClient
     $this->send($request_arr);
   }
 
+  public function setBrightness($level)
+  {
+    if (!$this->getVariable('is_dimmable',false))
+      throw KKPA\Exceptions\KKPADeviceException(994,"Device is not dimmable","Error");
+    $request_arr = array(
+      "smartlife.iot.smartbulb.lightingservice" => array(
+        "transition_light_state" => array(
+          "brightness" => $level,
+          "transition_period" => $this->getTransitionPeriod()
+        )
+      )
+    );
+    $this->send($request_arr);
+  }
+
+  public function getBrightness()
+  {
+    $sysinfo = $this->getSysInfo();
+    if ($sysinfo['is_dimmable'])
+    {
+      if($sysinfo['light_state']['on_off'])
+        return $sysinfo['light_state']['brightness'];
+      return $sysinfo['light_state']['dft_on_state']['brightness'];
+    }
+    return $sysinfo['light_state']['on_off']*100;
+
+  }
+
   public function switchOn()
   {
     $this->setRelayState(1);
@@ -79,7 +107,7 @@ class KKPABulbApiClient extends KKPADeviceApiClient
     $cur_wattage = $this->getVariable("wattage",0);
     if ($cur_wattage==0)
       $cur_wattage = $this->getLightDetails($force=false)['wattage'];
-    $power = doubleval($this->getState()*$cur_wattage);
+    $power = doubleval($this->getState()*$cur_wattage*$this->getBrightness()/100);
     return array("power"=>$power);
   }
 
