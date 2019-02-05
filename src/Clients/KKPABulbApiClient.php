@@ -13,6 +13,12 @@ use KKPA\Common\KKPARestErrorCode;
 
 class KKPABulbApiClient extends KKPADeviceApiClient
 {
+  public function getSysInfo($info=NULL)
+  {
+    $this->getLightDetails(false);
+    return parent::getSysInfo($info); 
+  }
+
   public function setRelayState($state)
   {
     $state = boolval($state);
