@@ -16,7 +16,8 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
       self::assertRegExp('/.+/',$username);
       self::$conf = array(
         "username" => $username,
-        "password" => $password
+        "password" => $password,
+        "cloud"    => true
       );
       parent::setUpBeforeClass();
     }

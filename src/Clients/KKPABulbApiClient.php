@@ -13,15 +13,22 @@ use KKPA\Common\KKPARestErrorCode;
 
 class KKPABulbApiClient extends KKPADeviceApiClient
 {
+  public function __construct($config = array(),$transition_period=150)
+  {
+    parent::__construct($config);
+    $this->setTransitionPeriod($transition_period);
+  }
+
   public function getSysInfo($info=NULL)
   {
     $this->getLightDetails(false);
-    return parent::getSysInfo($info); 
+    return parent::getSysInfo($info);
   }
 
   public function setRelayState($state)
   {
     $state = boolval($state);
+    $transition_period = $this->getTransitionPeriod();
     if ($state) $state = 1; else $state = 0;
     $request_arr = array(
       "smartlife.iot.smartbulb.lightingservice" => array(
@@ -29,7 +36,7 @@ class KKPABulbApiClient extends KKPADeviceApiClient
           "ignore_default" => 0,
           "mode" => "normal",
           "on_off" => $state,
-          "transition_period" => 0
+          "transition_period" => $transition_period
         )
       )
     );
@@ -55,6 +62,16 @@ class KKPABulbApiClient extends KKPADeviceApiClient
     } else {
       return null;
     }
+  }
+
+  public function setTransitionPeriod($time)
+  {
+    $this->setVariable('transition_period',$time);
+  }
+
+  public function getTransitionPeriod()
+  {
+    return $this->getVariable('transition_period');
   }
 
   public function getRealTime()

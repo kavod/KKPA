@@ -295,5 +295,43 @@ class KKPATestPrototype extends TestCase
       }
       //print_r($device->debug_last_request());
     }
+
+    public function testSetTransitionPeriod():void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->getType()=='IOT.SMARTBULB')
+        {
+          $device->setTransitionPeriod(150);
+          $device->switchOn();
+          $last_request = $device->debug_last_request();
+          $decode = json_decode($last_request['request'], TRUE);
+          if (self::$conf['cloud'])
+          {
+            $decode = json_decode($decode['params']['requestData'],TRUE);
+          }
+          $decode = $decode['smartlife.iot.smartbulb.lightingservice']['transition_light_state']['transition_period'];
+          $this->assertEquals($decode,150);
+
+          sleep(1);
+
+          $device->setTransitionPeriod(200);
+          $device->switchOff();
+          $last_request = $device->debug_last_request();
+          $decode = json_decode($last_request['request'], TRUE);
+          if (self::$conf['cloud'])
+          {
+            $decode = json_decode($decode['params']['requestData'],TRUE);
+          }
+          $decode = $decode['smartlife.iot.smartbulb.lightingservice']['transition_light_state']['transition_period'];
+          $this->assertEquals($decode,200);
+
+        }
+      }
+      //print_r($device->debug_last_request());
+    }
 }
 ?>
