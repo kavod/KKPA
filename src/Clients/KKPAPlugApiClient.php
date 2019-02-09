@@ -52,7 +52,7 @@ class KKPAPlugApiClient extends KKPADeviceApiClient
 
   public function getLedState()
   {
-    if ($this->is_featured('TIM'))
+    if ($this->is_featured('LED'))
     {
       $sysinfo = $this->getSysInfo("led_off");
       return ($sysinfo['led_off']==0);
@@ -100,6 +100,8 @@ class KKPAPlugApiClient extends KKPADeviceApiClient
 
   public function is_featured($feature)
   {
+    if ($feature=='LED')
+      return true;
     return (strpos($this->getVariable('feature',''),$feature)!==false);
   }
 }

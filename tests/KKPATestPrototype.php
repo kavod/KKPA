@@ -270,33 +270,28 @@ class KKPATestPrototype extends TestCase
       $this->assertInternalType('array',$deviceList);
       foreach($deviceList as $device)
       {
-        switch($device->getType())
+        if ($device->is_featured('LED'))
         {
-          case 'IOT.SMARTPLUGSWITCH':
-            if ($device->is_featured('TIM'))
-            {
-              $device->setLedOff();
-              sleep(DELAY_BEFORE_STATE);
-              $this->assertEquals(
-                $device->getLedState(),
-                0
-              );
-              $device->setLedOn();
-              sleep(DELAY_BEFORE_STATE);
-              $this->assertEquals(
-                $device->getLedState(),
-                1
-              );
-              $device->setLedOff();
-              sleep(DELAY_BEFORE_STATE);
-              $this->assertEquals(
-                $device->getLedState(),
-                0
-              );
-            } else {
-              $this->assertNull($device->getLedState());
-            }
-            break;
+          $device->setLedOff();
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getLedState(),
+            0
+          );
+          $device->setLedOn();
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getLedState(),
+            1
+          );
+          $device->setLedOff();
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getLedState(),
+            0
+          );
+        } else {
+          $this->assertNull($device->getLedState());
         }
       }
       //print_r($device::debug_last_request());

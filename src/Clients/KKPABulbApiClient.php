@@ -240,6 +240,8 @@ class KKPABulbApiClient extends KKPADeviceApiClient
       return ($this->getVariable('is_dimmable',0)==1);
     if ($feature=='TMP')
       return ($this->getVariable('is_variable_color_temp',0)==1);
+    if ($feature=='LED')
+      return false;
     return false;
   }
 }
