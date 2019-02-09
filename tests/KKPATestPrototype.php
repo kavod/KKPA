@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 if (!defined("DELAY_BEFORE_STATE"))
-  define('DELAY_BEFORE_STATE',0.5);
+  define('DELAY_BEFORE_STATE',1.5);
 
 require_once (__ROOT__.'/src/autoload.php');
 
@@ -12,11 +12,12 @@ class KKPATestPrototype extends TestCase
     protected static $conf;
     protected static $ref_client;
     protected static $ref_deviceList;
+    protected static $ref_testDeviceList = array();
 
     public static function setUpBeforeClass()
     {
       self::$ref_client = new KKPA\Clients\KKPAApiClient(self::$conf);
-      self::$ref_deviceList = self::$ref_client->getDeviceList(self::$conf);
+      //self::$ref_deviceList = self::$ref_client->getDeviceList(self::$conf);
     }
 
     public function instance($config = array()): KKPA\Clients\KKPAApiClient
@@ -31,7 +32,7 @@ class KKPATestPrototype extends TestCase
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
       if (count($deviceList)<1)
-        print_r($client->debug_last_request());
+        print_r($client::debug_last_request());
       return $deviceList[0];
     }
 
@@ -93,7 +94,7 @@ class KKPATestPrototype extends TestCase
     {
       $client = $this::instance(self::$conf);
       $deviceList = $client->getDeviceList();
-      $last_request = $client->debug_last_request();
+      $last_request = $client::debug_last_request();
       $this->assertInternalType('array',$last_request);
       $this->assertArrayHasKey('request',$last_request);
       $this->assertArrayHasKey('result',$last_request);
@@ -105,7 +106,7 @@ class KKPATestPrototype extends TestCase
       $this->assertFalse(!$decode);
       $device = $deviceList[0];
       $sysInfo = $device->getSysInfo();
-      $last_request = $device->debug_last_request();
+      $last_request = $device::debug_last_request();
       $this->assertInternalType('array',$last_request);
       $this->assertArrayHasKey('request',$last_request);
       $this->assertArrayHasKey('result',$last_request);
@@ -154,7 +155,7 @@ class KKPATestPrototype extends TestCase
           $this->assertGreaterThan(0,strlen($sysInfo['dev_name']));
         $this->assertInternalType("int",$sysInfo['rssi']);
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testSwitchOnOff(): void
@@ -188,7 +189,7 @@ class KKPATestPrototype extends TestCase
           $this->assertNull($device->getState());
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testBrightness(): void
@@ -222,7 +223,43 @@ class KKPATestPrototype extends TestCase
           $device->switchOff();
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
+    }
+
+    public function testHue(): void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->getType()=='IOT.SMARTBULB')
+        {
+          if(!$device->is_featured('COL'))
+            continue;
+          $device->switchOn();
+          $device->setHue(0);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getHue(),
+            0
+          );
+          $device->setHue(180);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getHue(),
+            180
+          );
+          $device->setHue(270);
+          sleep(DELAY_BEFORE_STATE);
+          $this->assertEquals(
+            $device->getHue(),
+            270
+          );
+          $device->switchOff();
+        }
+      }
+      //print_r($device::debug_last_request());
     }
 
     public function testLedOnOff(): void
@@ -262,7 +299,7 @@ class KKPATestPrototype extends TestCase
             break;
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testGetRealTime():void
@@ -280,7 +317,7 @@ class KKPATestPrototype extends TestCase
           $this->assertNull($realTime);
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testIsFeatured():void
@@ -311,7 +348,7 @@ class KKPATestPrototype extends TestCase
           }
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testGetLightDetails():void
@@ -327,7 +364,7 @@ class KKPATestPrototype extends TestCase
           $this->assertInternalType("int",$lightDetails['wattage']);
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
     }
 
     public function testSetTransitionPeriod():void
@@ -341,7 +378,7 @@ class KKPATestPrototype extends TestCase
         {
           $device->setTransitionPeriod(150);
           $device->switchOn();
-          $last_request = $device->debug_last_request();
+          $last_request = $device::debug_last_request();
           $decode = json_decode($last_request['request'], TRUE);
           if (self::$conf['cloud'])
           {
@@ -354,7 +391,7 @@ class KKPATestPrototype extends TestCase
 
           $device->setTransitionPeriod(200);
           $device->switchOff();
-          $last_request = $device->debug_last_request();
+          $last_request = $device::debug_last_request();
           $decode = json_decode($last_request['request'], TRUE);
           if (self::$conf['cloud'])
           {
@@ -365,7 +402,74 @@ class KKPATestPrototype extends TestCase
 
         }
       }
-      //print_r($device->debug_last_request());
+      //print_r($device::debug_last_request());
+    }
+
+    public function testGetDeviceById()
+    {
+      foreach(self::$ref_testDeviceList as $device)
+      {
+        if (!self::$conf['cloud'] || !$device['virtual'])
+        {
+          $dev = self::$ref_client->getDeviceById($device['deviceId']);
+          $this->assertEquals(
+            $device['model'],
+            $dev->getModel()
+          );
+          $this->assertEquals(
+            $device['deviceId'],
+            $dev->getVariable('deviceId','')
+          );
+        }
+      }
+    }
+
+    public function testLightState(): void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->getType()=='IOT.SMARTBULB')
+        {
+          $device->switchOn();
+          $expected = array();
+          if($device->is_featured('DIM'))
+          {
+            $brightness = rand(0,100);
+            $expected['brightness'] = $brightness;
+          }
+          else
+            $brightness = null;
+          if($device->is_featured('TMP'))
+          {
+            $color_temp = rand(2700,6500);
+            $expected['color_temp'] = $color_temp;
+          }
+          else
+            $color_temp = null;
+          if($device->is_featured('COL'))
+          {
+            $hue = rand(0,360);
+            $saturation = rand(0,100);
+            $expected['hue'] = $hue;
+            $expected['saturation'] = $saturation;
+          } else
+          {
+            $hue = null;
+            $saturation = null;
+          }
+          $device->setLightState($color_temp,$hue,$saturation,$brightness);
+          sleep(DELAY_BEFORE_STATE);
+          $state = $device->getLightState();
+          $this->assertEquals(
+            $state,
+            $expected
+          );
+          $device->switchOff();
+        }
+      }
+      //print_r($device::debug_last_request());
     }
 }
 ?>

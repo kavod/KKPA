@@ -25,9 +25,10 @@
   {
     public $conf = array();
     protected $token;
-    protected $last_request = "";
-    protected $last_result = "";
-    protected $last_errno = 0;
+    protected static $last_request = "";
+    protected static $last_result = "";
+    protected static $last_errno = 0;
+    protected static $last_deviceId = "";
     protected $uuid = "";
     protected $cloud = false;
     protected $local_ip = '';
@@ -139,6 +140,61 @@
         return array_pop($path);
     }
 
+    public function getDeviceByIp($ip,$port=9999)
+    {
+      if ($this->getVariable('cloud',1)==1)
+        throw new KKPAClientException(994,"getDeviceByIp cannot be used in Cloud mode","Error");
+      $conf = array(
+        "cloud" => false,
+        "local_ip" => $ip,
+        "local_port" => $port,
+        "username" => $this->getVariable('username',''),
+        "password" => $this->getVariable('password','')
+      );
+      $device = new KKPADeviceApiClient($conf);
+      switch($device->getType())
+      {
+        case 'IOT.SMARTPLUGSWITCH':
+          if ($device->getModel()=='HS300')
+            return new KKPAMultiPlugApiClient($conf);
+          return new KKPAPlugApiClient($conf);
+          break;
+        case 'IOT.SMARTBULB':
+          return new KKPABulbApiClient($conf);
+          break;
+      }
+    }
+
+    public function getDeviceById($deviceId)
+    {
+      if ($this->getVariable('cloud',1)==1)
+      {
+        $conf = array_merge(array(),$this->conf);
+        $conf['deviceId'] = $deviceId;
+        $device = new KKPADeviceApiClient($conf);
+        switch($device->getType())
+        {
+          case 'IOT.SMARTPLUGSWITCH':
+            if ($device->getModel()=='HS300')
+              return new KKPAMultiPlugApiClient($conf);
+            return new KKPAPlugApiClient($conf);
+            break;
+          case 'IOT.SMARTBULB':
+            return new KKPABulbApiClient($conf);
+            break;
+        }
+      } else
+      {
+        $deviceList = $this->getDeviceList();
+        foreach($deviceList as $device)
+        {
+          if ($device->getVariable('deviceId','')==$deviceId)
+            return $device;
+        }
+        throw new KKPAClientException(993,"$deviceId not found","Error");
+      }
+    }
+
     static protected function getAltAttr($json,$keys,$default=null)
     {
       foreach($keys as $key)
@@ -195,9 +251,10 @@
     // Debug functions
     protected function setLastRequest($request_arr)
     {
-      $this->last_request = $this->anonymizeUserPass($request_arr);
-      $this->last_result = "";
-      $this->last_errno = 0;
+      self::$last_deviceId = $this->getVariable('deviceId','Unknown');
+      self::$last_request = $this->anonymizeUserPass($request_arr);
+      self::$last_result = "";
+      self::$last_errno = 0;
     }
 
     protected function anonymizeUserPass($str)
@@ -215,8 +272,7 @@
 
     protected function setLastResponse($result,$errno)
     {
-      //print_r($result);
-      $this->last_result = preg_replace(
+      self::$last_result = preg_replace(
         '/((?:\\\\)?)\"(latitude|longitude)(_i)?((?:\\\\)?)\":(?:(?:\\\\)?\")?(?:-?\d+(?:\.\d+)?)(?:(?:\\\\)?\")?(,|\})/',
         '${1}"${2}${3}${4}":0${5}',
         str_replace(
@@ -225,15 +281,15 @@
           print_r($result,true)
         )
       );
-      //print_r($this->last_result);
-      $this->last_errno = $errno;
+      self::$last_errno = $errno;
     }
 
-    public function debug_last_request() {
+    public static function debug_last_request() {
       return array(
-        "request" => $this->last_request,
-        "result" => $this->last_result,
-        "errno" => $this->last_errno
+        "deviceId" => self::$last_deviceId,
+        "request" => self::$last_request,
+        "result" => self::$last_result,
+        "errno" => self::$last_errno
       );
     }
 
@@ -389,7 +445,7 @@
       }
       if($error_code !=0)
       {
-          throw new KKPAClientException($error_code,"Error ($error_code)\n$msg","Error");
+          throw new KKPAClientException($error_code,"Error ($error_code)\n$msg\n".print_r(self::debug_last_request()),"Error");
       }
     }
 
@@ -711,7 +767,13 @@
       $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
       $data = '';
       $out = '';
-      socket_connect($sock, $this->local_ip, $this->local_port);
+      $success = @socket_connect($sock, $this->local_ip, $this->local_port);
+      $err = socket_last_error($sock);
+      if (!$success || $err > 0)
+      {
+        socket_close($sock);
+        throw new \Exception("Error $err during connection to $this->local_ip");
+      }
       socket_write($sock, $requestData, strlen($requestData));
       $out = socket_read($sock, 2048);
       while ($out && $out!='') {
@@ -752,7 +814,7 @@
         $this->setLastResponse($response,socket_last_error());
         $result[] = $data;
       }
-      sleep(KKPA_LOCAL_TIMEOUT);
+      //sleep(KKPA_LOCAL_TIMEOUT);
       return array(
           "deviceList" => $result
       );

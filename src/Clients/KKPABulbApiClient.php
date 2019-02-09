@@ -45,8 +45,8 @@ class KKPABulbApiClient extends KKPADeviceApiClient
 
   public function setBrightness($level)
   {
-    if (!$this->getVariable('is_dimmable',false))
-      throw KKPA\Exceptions\KKPADeviceException(994,"Device is not dimmable","Error");
+    if (!$this->is_featured('DIM'))
+      throw new KKPADeviceException(994,"Device is not dimmable","Error");
     $request_arr = array(
       "smartlife.iot.smartbulb.lightingservice" => array(
         "transition_light_state" => array(
@@ -61,14 +61,99 @@ class KKPABulbApiClient extends KKPADeviceApiClient
   public function getBrightness()
   {
     $sysinfo = $this->getSysInfo();
-    if ($sysinfo['is_dimmable'])
+    if ($this->is_featured('DIM'))
     {
       if($sysinfo['light_state']['on_off'])
         return $sysinfo['light_state']['brightness'];
-      return $sysinfo['light_state']['dft_on_state']['brightness'];
+      else
+        return $sysinfo['light_state']['dft_on_state']['brightness'];
     }
     return $sysinfo['light_state']['on_off']*100;
 
+  }
+
+  public function setHue($hue)
+  {
+    if (!$this->getVariable('is_color',false))
+      throw new KKPADeviceException(993,"Device has not color changing","Error");
+    $request_arr = array(
+      "smartlife.iot.smartbulb.lightingservice" => array(
+        "transition_light_state" => array(
+          "hue" => $hue,
+          "transition_period" => $this->getTransitionPeriod()
+        )
+      )
+    );
+    $this->send($request_arr);
+  }
+
+  public function getHue()
+  {
+    $sysinfo = $this->getSysInfo();
+    if ($sysinfo['is_color'])
+    {
+      if($sysinfo['light_state']['on_off'])
+        return $sysinfo['light_state']['hue'];
+      else
+        return $sysinfo['light_state']['dft_on_state']['hue'];
+    }
+    return 0;
+  }
+
+  public function setLightState($color_temp=null,$hue=null,$saturation=null,$brightness=null)
+  {
+    $color_change = !(is_null($hue)&&is_null($saturation));
+    $temp_change = !is_null($color_temp);
+    $brightness_change = !is_null($brightness);
+
+    if ($color_change && !$this->is_featured('COL'))
+      throw new KKPADeviceException(993,"Device ".$this->getModel()." has not color changing","Error");
+
+    if ($brightness_change && !$this->is_featured('DIM'))
+      throw new KKPADeviceException(994,"Device is not dimmable","Error");
+
+    if ($temp_change && !$this->is_featured('TMP'))
+      throw new KKPADeviceException(992,"Device has not temperature changing","Error");
+
+    $light_state = array(
+      "transition_period" => $this->getTransitionPeriod()
+    );
+    if (!is_null($hue))
+      $light_state['hue'] = $hue;
+    if (!is_null($saturation))
+      $light_state['saturation'] = $saturation;
+    if (!is_null($color_temp))
+      $light_state['color_temp'] = $color_temp;
+    if (!is_null($brightness))
+      $light_state['brightness'] = $brightness;
+
+    $request_arr = array(
+      "smartlife.iot.smartbulb.lightingservice" => array(
+        "transition_light_state" => $light_state
+      )
+    );
+    $this->send($request_arr);
+  }
+
+  public function getLightState()
+  {
+    $sysinfo = $this->getSysInfo();
+    if($sysinfo['light_state']['on_off']==1)
+      $state = $sysinfo['light_state'];
+    else
+      $state = $sysinfo['light_state']['dft_on_state'];
+
+    $result = array();
+    if ($this->is_featured('DIM'))
+      $result['brightness'] = $state['brightness'];
+    if ($this->is_featured('TMP'))
+      $result['color_temp'] = $state['color_temp'];
+    if ($this->is_featured('COL'))
+    {
+      $result['hue'] = $state['hue'];
+      $result['saturation'] = $state['saturation'];
+    }
+    return $result;
   }
 
   public function switchOn()
@@ -149,6 +234,12 @@ class KKPABulbApiClient extends KKPADeviceApiClient
       return true;
     if ($feature=='ENE')
       return true;
+    if ($feature=='COL')
+      return ($this->getVariable('is_color',0)==1);
+    if ($feature=='DIM')
+      return ($this->getVariable('is_dimmable',0)==1);
+    if ($feature=='TMP')
+      return ($this->getVariable('is_variable_color_temp',0)==1);
     return false;
   }
 }
