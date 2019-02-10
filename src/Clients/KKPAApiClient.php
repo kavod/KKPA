@@ -72,8 +72,9 @@
     *   - uuid: (optional) Stored uuid
     *   - cloud: (optional) Is cloud used?
     */
-    public function __construct($config = array())
+    public function __construct($conf = array())
     {
+        $config = array_merge(array(),$conf);
         if(array_key_exists('cloud',$config))
         {
           $this->cloud = boolval($config["cloud"]);
@@ -142,7 +143,7 @@
 
     public function getDeviceByIp($ip,$port=9999)
     {
-      if ($this->getVariable('cloud',1)==1)
+      if ($this->getVariable('cloud',1))
         throw new KKPAClientException(994,"getDeviceByIp cannot be used in Cloud mode","Error");
       $conf = array(
         "cloud" => false,
@@ -315,7 +316,7 @@
     // Network functions (Cloud & Local)
     protected function send($request_arr)
     {
-      $cloud = $this->getVariable('cloud',true);
+      $cloud = $this->getVariable('cloud');
       $deviceId = $this->getVariable('deviceId',null);
       $requestData = $this->makeRequestData($request_arr);
       if ($cloud)
@@ -452,7 +453,7 @@
     protected function makeRequestData($request_arr)
     {
       $json = json_encode($request_arr);
-      if ($this->cloud)
+      if ($this->getVariable("cloud"))
       {
         $deviceId = $this->getVariable('deviceId',null);
         if (is_null($deviceId))

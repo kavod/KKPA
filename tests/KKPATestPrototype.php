@@ -16,6 +16,7 @@ class KKPATestPrototype extends TestCase
 
     public static function setUpBeforeClass()
     {
+      self::$ref_deviceList = array();
       self::$ref_client = new KKPA\Clients\KKPAApiClient(self::$conf);
       //self::$ref_deviceList = self::$ref_client->getDeviceList(self::$conf);
     }
@@ -375,7 +376,7 @@ class KKPATestPrototype extends TestCase
           $device->switchOn();
           $last_request = $device::debug_last_request();
           $decode = json_decode($last_request['request'], TRUE);
-          if (self::$conf['cloud'])
+          if ($device->getVariable('cloud'))
           {
             $decode = json_decode($decode['params']['requestData'],TRUE);
           }
@@ -388,7 +389,7 @@ class KKPATestPrototype extends TestCase
           $device->switchOff();
           $last_request = $device::debug_last_request();
           $decode = json_decode($last_request['request'], TRUE);
-          if (self::$conf['cloud'])
+          if ($device->getVariable('cloud'))
           {
             $decode = json_decode($decode['params']['requestData'],TRUE);
           }
