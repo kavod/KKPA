@@ -474,6 +474,8 @@ class KKPATestPrototype extends TestCase
             $saturation = null;
           }
           $device->setLightState($color_temp,$hue,$saturation,$brightness);
+          $device->switchOff();
+          $device->switchOn();
           sleep(DELAY_BEFORE_STATE);
           $state = $device->getLightState();
           $this->assertEquals(
