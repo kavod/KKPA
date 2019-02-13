@@ -189,6 +189,7 @@
         $deviceList = $this->getDeviceList();
         foreach($deviceList as $device)
         {
+          echo $device->getVariable('model');
           if ($device->getVariable('deviceId','')==$deviceId)
             return $device;
         }
@@ -804,6 +805,7 @@
       socket_set_option($sock, SOL_SOCKET, SO_RCVTIMEO, array("sec"=>KKPA_LOCAL_TIMEOUT, "usec"=>0));
       socket_sendto($sock, $requestData, strlen($requestData), 0, KKPA_BROADCAST_IP, KKPA_DEFAULT_PORT);
       $result = array();
+      $found_ip = array();
       while(true) {
         $ret = @socket_recvfrom($sock, $buf, 128*1024, 0, $local_ip, $local_port);
         if($ret === false) break;
@@ -813,7 +815,11 @@
         $data['local_ip'] = $local_ip;
         $data['local_port'] = $local_port;
         $this->setLastResponse($response,socket_last_error());
-        $result[] = $data;
+        if (!in_array($local_ip,$found_ip))
+        {
+          $result[] = $data;
+          $found = $local_ip;
+        }
       }
       //sleep(KKPA_LOCAL_TIMEOUT);
       return array(

@@ -67,14 +67,11 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
 
   public function getSlotState($id)
   {
-    if ($this->is_featured('TIM'))
+    $sysinfo = $this->getSysInfo("children");
+    foreach($sysinfo['children'] as $child)
     {
-      $sysinfo = $this->getSysInfo("children");
-      foreach($sysinfo['children'] as $child)
-      {
-        if ($child['id'] == $id)
-          return $child['state'];
-      }
+      if ($child['id'] == $id)
+        return $child['state'];
     }
     throw new KKPAClientException(994,"No child with ID ".$id,"Error");
   }

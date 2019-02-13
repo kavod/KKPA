@@ -168,13 +168,8 @@ class KKPABulbApiClient extends KKPADeviceApiClient
 
   public function getState()
   {
-    if ($this->is_featured('TIM'))
-    {
-      $sysinfo = $this->getSysInfo("light_state");
-      return $sysinfo['light_state']['on_off'];
-    } else {
-      return null;
-    }
+    $sysinfo = $this->getSysInfo("light_state");
+    return $sysinfo['light_state']['on_off'];
   }
 
   public function setTransitionPeriod($time)
@@ -231,7 +226,7 @@ class KKPABulbApiClient extends KKPADeviceApiClient
   public function is_featured($feature)
   {
     if ($feature=='TIM')
-      return true;
+      return false;
     if ($feature=='ENE')
       return true;
     if ($feature=='COL')

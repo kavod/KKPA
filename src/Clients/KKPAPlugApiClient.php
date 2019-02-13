@@ -23,13 +23,8 @@ class KKPAPlugApiClient extends KKPADeviceApiClient
 
   public function getState()
   {
-    if ($this->is_featured('TIM'))
-    {
-      $sysinfo = $this->getSysInfo("relay_state");
-      return $sysinfo['relay_state'];
-    } else {
-      return null;
-    }
+    $sysinfo = $this->getSysInfo("relay_state");
+    return $sysinfo['relay_state'];
   }
 
   public function setLedState($state)

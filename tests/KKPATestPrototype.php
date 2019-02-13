@@ -67,9 +67,12 @@ class KKPATestPrototype extends TestCase
       $client = $this::instance(self::$conf);
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
+      $found = array();
       $this->assertInternalType('array',$deviceList);
       foreach($deviceList as $device)
       {
+        $this->assertFalse(in_array($device->getVariable('deviceId',''),$found));
+        $found[] = $device->getVariable('deviceId','');
         switch($device->getType())
         {
           case 'IOT.SMARTBULB':
@@ -166,7 +169,7 @@ class KKPATestPrototype extends TestCase
       $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
-        if ($device->is_featured('TIM'))
+        if ($device->is_featured('TIM') || $device->is_featured('DIM'))
         {
           $device->switchOff();
           sleep(DELAY_BEFORE_STATE);
@@ -333,11 +336,26 @@ class KKPATestPrototype extends TestCase
             case 'HS220':
               $this->assertTrue($device->is_featured('TIM'));
               $this->assertFalse($device->is_featured('ENE'));
+              $this->assertFalse($device->is_featured('DIM'));
+              $this->assertFalse($device->is_featured('COL'));
+              $this->assertFalse($device->is_featured('TMP'));
               break;
             case 'HS110':
             case 'HS300':
               $this->assertTrue($device->is_featured('TIM'));
               $this->assertTrue($device->is_featured('ENE'));
+              $this->assertFalse($device->is_featured('DIM'));
+              $this->assertFalse($device->is_featured('COL'));
+              $this->assertFalse($device->is_featured('TMP'));
+              break;
+            case 'LB130':
+              $this->assertTrue($device->is_featured('COL'));
+            case 'LB120':
+              $this->assertTrue($device->is_featured('TMP'));
+            case 'LB100':
+              $this->assertFalse($device->is_featured('TIM'));
+              $this->assertTrue($device->is_featured('ENE'));
+              $this->assertTrue($device->is_featured('DIM'));
               break;
             default:
               break;
