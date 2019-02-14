@@ -308,12 +308,10 @@ class KKPATestPrototype extends TestCase
       $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
-        $realTime = $device->getRealTime();
         if ($device->is_featured('ENE'))
         {
+          $realTime = $device->getRealTime();
           $this->assertInternalType("double",$realTime['power']);
-        } else {
-          $this->assertNull($realTime);
         }
       }
       //print_r($device::debug_last_request());
@@ -354,7 +352,7 @@ class KKPATestPrototype extends TestCase
               $this->assertTrue($device->is_featured('TMP'));
             case 'LB100':
               $this->assertFalse($device->is_featured('TIM'));
-              $this->assertTrue($device->is_featured('ENE'));
+              $this->assertFalse($device->is_featured('ENE'));
               $this->assertTrue($device->is_featured('DIM'));
               break;
             default:

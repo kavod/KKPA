@@ -228,7 +228,7 @@ class KKPABulbApiClient extends KKPADeviceApiClient
     if ($feature=='TIM')
       return false;
     if ($feature=='ENE')
-      return true;
+      return false;
     if ($feature=='COL')
       return ($this->getVariable('is_color',0)==1);
     if ($feature=='DIM')
