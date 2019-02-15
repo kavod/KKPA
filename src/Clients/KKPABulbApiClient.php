@@ -75,7 +75,11 @@ class KKPABulbApiClient extends KKPADeviceApiClient
   public function setHue($hue)
   {
     if (!$this->getVariable('is_color',false))
-      throw new KKPADeviceException(993,"Device has not color changing","Error");
+      throw new KKPADeviceException(
+        KKPA_NO_FEAT_COLOR,
+        "Device has not color changing",
+        "Error"
+      );
     $request_arr = array(
       "smartlife.iot.smartbulb.lightingservice" => array(
         "transition_light_state" => array(
@@ -107,7 +111,11 @@ class KKPABulbApiClient extends KKPADeviceApiClient
     $brightness_change = !is_null($brightness);
 
     if ($color_change && !$this->is_featured('COL'))
-      throw new KKPADeviceException(993,"Device ".$this->getModel()." has not color changing","Error");
+      throw new KKPADeviceException(
+        KKPA_NO_FEAT_COLOR,
+        "Device ".$this->getModel()." has not color changing",
+        "Error"
+      );
 
     if ($brightness_change && !$this->is_featured('DIM'))
       throw new KKPADeviceException(994,"Device is not dimmable","Error");
