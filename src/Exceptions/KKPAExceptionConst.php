@@ -10,5 +10,6 @@ define('KKPA_PARAM_NOT_EXIST', -20104); //{"error_code": -20104,"msg": "Paramete
 define('KKPA_DEVICE_OFFLINE', -20571); // {"error_code":-20571,"msg":"Device is offline"}
 define('KKPA_NOT_BINDED', -20580); // {"error_code": -20580,"msg": "Account is not binded to the device"}
 
-define('KKPA_NO_ROUTE_TO_HOST', 992); // {"error_code": -20580,"msg": "Account is not binded to the device"}
+define('KKPA_NO_ROUTE_TO_HOST', 992); // {"error_code": 992,"msg": "Error $err during connection to $ip"}
+define('KKPA_NO_FEAT_COLOR', 993); // {"error_code": 992,"msg": "Device ".$this->getModel()." has not color changing"}
  ?>
