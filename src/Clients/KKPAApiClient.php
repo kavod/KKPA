@@ -773,7 +773,11 @@
       if (!$success || $err > 0)
       {
         socket_close($sock);
-        throw new \Exception("Error $err during connection to $this->local_ip");
+        throw new KKPAClientException(
+          KKPA_NO_ROUTE_TO_HOST,
+          "Error $err during connection to $this->local_ip",
+          "Error"
+        );
       }
       socket_write($sock, $requestData, strlen($requestData));
       $out = socket_read($sock, 2048);
