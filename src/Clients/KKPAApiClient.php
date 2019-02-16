@@ -192,7 +192,7 @@
           if ($device->getVariable('deviceId','')==$deviceId)
             return $device;
         }
-        throw new KKPAClientException(993,"$deviceId not found","Error");
+        throw new KKPAClientException(KKPA_NOT_FOUND,"Device $deviceId not found on network","Error");
       }
     }
 
