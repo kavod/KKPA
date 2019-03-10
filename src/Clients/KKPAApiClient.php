@@ -20,6 +20,7 @@
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
+  define('KKPA_MAX_ATTEMPTS',3);
 
   class KKPAApiClient
   {
@@ -186,13 +187,21 @@
         }
       } else
       {
-        $deviceList = $this->getDeviceList();
-        foreach($deviceList as $device)
+        for($attempt=0;$attempt<KKPA_MAX_ATTEMPTS;$attempt++)
         {
-          if ($device->getVariable('deviceId','')==$deviceId)
-            return $device;
+          $deviceList = $this->getDeviceList();
+          foreach($deviceList as $device)
+          {
+            if ($device->getVariable('deviceId','')==$deviceId)
+              return $device;
+          }
+          sleep(0.5);
         }
-        throw new KKPAClientException(KKPA_NOT_FOUND,"Device $deviceId not found on network","Error");
+        throw new KKPAClientException(
+          KKPA_NOT_FOUND,
+          "Device $deviceId not found on network (".KKPA_MAX_ATTEMPTS." attempts)",
+          "Error"
+        );
       }
     }
 
@@ -792,7 +801,16 @@
       socket_close($sock);
       $decrypt = self::tp_decrypt($data,true);
       $this->setLastResponse($decrypt,socket_last_error());
-      return json_decode($decrypt,true);
+      $result = json_decode($decrypt,true);
+      if (is_null($result))
+      {
+        throw new KKPAClientException(
+          KKPA_EMPTY_ANSWER,
+          "Empty answer",
+          "Error"
+        );
+      }
+      return $result;
     }
 
     protected function makeBroadcastRequest()
