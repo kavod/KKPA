@@ -1,106 +1,14 @@
 <?php
 namespace KKPA\Clients;
 
-class KKPAPlugApiClient extends KKPAApiClient
+class KKPAPlugApiClient extends KKPADeviceApiClient
 {
-  protected $deviceId;
-  public function __construct($config = array())
-  {
-    if(!isset($config["deviceId"]))
-    {
-      throw new Exception("DeviceId required");
-    }
-    parent::__construct($config);
-    $this->deviceId = $config['deviceId'];
-  }
-
-  public function getSysInfo($info=NULL)
-  {
-    if (isset($info))
-    {
-      if(is_string($info))
-        $info = array($info);
-      if(is_array($info))
-      {
-        foreach($info as $element)
-        {
-          if (!is_string($element))
-            throw new Exception("Info must be string or array of strings");
-        }
-      } else
-      {
-        throw new Exception("Info must be string or array of strings");
-      }
-    }
-    $requestData = json_encode(array("system" => array("get_sysinfo" => array())));
-    $param = json_encode(
-      array(
-        "method"=>"passthrough",
-        "params"=>array(
-          "deviceId"=>$this->deviceId,
-          "requestData"=>$requestData
-        )
-      )
-    );
-    $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
-    $system = $responseData['system']['get_sysinfo'];
-
-    $sys_to_conf = array(
-      "sw_ver",
-      "dev_name",
-      "alias",
-      "type",
-      "model",
-      "mac",
-      "deviceId",
-      "hwId",
-      "fwId",
-      "oemId",
-      "hw_ver",
-      "rssi",
-      "led_off"
-    );
-
-    foreach($system as $key => $value)
-    {
-      if(in_array($key,$sys_to_conf))
-      {
-        $this->setVariable($key,$value);
-      }
-    }
-
-    if (!isset($info))
-    {
-      return $system;
-    } else
-    {
-      $result = array();
-      foreach($system as $key => $value)
-      {
-        if(in_array($key,$info))
-        {
-          $result[$key] = $value;
-        }
-      }
-      return $result;
-    }
-  }
-
   public function setRelayState($state)
   {
     $state = boolval($state);
     if ($state) $state = 1; else $state = 0;
-    $requestData = json_encode(array("system" => array("set_relay_state" => array("state" => $state))));
-    $param = json_encode(
-      array(
-        "method"=>"passthrough",
-        "params"=>array(
-          "deviceId"=>$this->deviceId,
-          "requestData"=>$requestData
-        )
-      )
-    );
-    $this->api("",'POST',$param);
+    $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
+    $this->send($request_arr);
   }
 
   public function switchOn()
@@ -123,17 +31,8 @@ class KKPAPlugApiClient extends KKPAApiClient
   {
     $state = boolval($state);
     if (!$state) $state = 1; else $state = 0;
-    $requestData = json_encode(array("system" => array("set_led_off" => array("off" => $state))));
-    $param = json_encode(
-      array(
-        "method"=>"passthrough",
-        "params"=>array(
-          "deviceId"=>$this->deviceId,
-          "requestData"=>$requestData
-        )
-      )
-    );
-    $this->api("",'POST',$param);
+    $request_arr = array("system" => array("set_led_off" => array("off" => $state)));
+    $this->send($request_arr);
   }
 
   public function setLedOn()
@@ -148,35 +47,57 @@ class KKPAPlugApiClient extends KKPAApiClient
 
   public function getLedState()
   {
-    $sysinfo = $this->getSysInfo("led_off");
-    return ($sysinfo['led_off']==0);
+    if ($this->is_featured('LED'))
+    {
+      $sysinfo = $this->getSysInfo("led_off");
+      return ($sysinfo['led_off']==0);
+    } else {
+      return null;
+    }
+
   }
 
   public function getRealTime()
   {
-    $requestData = json_encode(array("emeter" => array("get_realtime" => NULL)));
-    $param = json_encode(
-      array(
-        "method"=>"passthrough",
-        "params"=>array(
-          "deviceId"=>$this->deviceId,
-          "requestData"=>$requestData
-        )
-      )
-    );
-    $responseData = json_decode($this->api("",'POST',$param)['responseData'],true);
-    if (array_key_exists('get_realtime',$responseData['emeter'])) {
-      return $responseData['emeter']['get_realtime'];
-    } else {
-      return array();
+    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    {
+      if ($this->is_featured('ENE'))
+      {
+        $request_arr = array("emeter" => array("get_realtime" => NULL));
+        $realtime = $this->send($request_arr);
+
+        $realtime = self::uniformizeRealTime($realtime,'voltage','voltage_mv',1000);
+        $realtime = self::uniformizeRealTime($realtime,'current','current_ma',1000);
+        $realtime = self::uniformizeRealTime($realtime,'power','power_mw',1000);
+        $realtime = self::uniformizeRealTime($realtime,'total','total_wh',1);
+
+        return $realtime;
+      }
     }
   }
 
-  public function toString()
+  protected static function uniformizeRealTime($realtime,$target,$source,$factor)
   {
-    $array = parent::toArray();
-    $array['deviceId'] = $this->deviceId;
-    return print_r($array,true);
+    if (array_key_exists($source,$realtime))
+    {
+      $realtime[$target] = $realtime[$source]/$factor;
+      unset($realtime[$source]);
+    }
+    if (!array_key_exists($target,$realtime))
+      throw new KKPAApiErrorType(
+        996,
+        "Missing value: ".$target." in ".print_r($realtime,true),
+        "Error"
+      );
+    $realtime[$target] = floatval($realtime[$target]);
+    return $realtime;
+  }
+
+  public function is_featured($feature)
+  {
+    if ($feature=='LED')
+      return true;
+    return (strpos($this->getVariable('feature',''),$feature)!==false);
   }
 }
 ?>

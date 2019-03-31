@@ -12,11 +12,11 @@ class KKPAApiErrorType extends KKPAClientException
         $this->result = $result;
         if(isset($result["error_code"]))
         {
-            parent::__construct($result["error_code"], $result["msg"], API_ERROR_TYPE);
+            parent::__construct($result["error_code"], $result["msg"], KKPA_API_ERROR_TYPE);
         }
         else
         {
-            parent::__construct($code, $message, API_ERROR_TYPE);
+            parent::__construct($code, $message, KKPA_API_ERROR_TYPE);
         }
     }
 }

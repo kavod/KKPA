@@ -2,3 +2,4 @@ Examples/ConfigPerso.php
 old/*
 composer.lock
 vendor/*
+tests/testRequests.php
