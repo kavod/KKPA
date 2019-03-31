@@ -325,7 +325,7 @@
     // Network functions (Cloud & Local)
     protected function send($request_arr)
     {
-      $cloud = $this->getVariable('cloud');
+      $cloud = $this->getVariable('cloud',1);
       $deviceId = $this->getVariable('deviceId',null);
       $requestData = $this->makeRequestData($request_arr);
       if ($cloud)
@@ -455,14 +455,14 @@
       }
       if($error_code !=0)
       {
-          throw new KKPAClientException($error_code,"Error ($error_code)\n$msg\n".print_r(self::debug_last_request()),"Error");
+          throw new KKPAClientException($error_code,"Error ($error_code)\n$msg\n".print_r(self::debug_last_request(),true),"Error");
       }
     }
 
     protected function makeRequestData($request_arr)
     {
       $json = json_encode($request_arr);
-      if ($this->getVariable("cloud"))
+      if ($this->getVariable("cloud",1))
       {
         $deviceId = $this->getVariable('deviceId',null);
         if (is_null($deviceId))
