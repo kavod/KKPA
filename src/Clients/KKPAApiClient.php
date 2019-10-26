@@ -767,7 +767,8 @@
         $clear_text = implode('', $array_map);
         $cypher_length = strlen($clear_text);
         if ($header_length !== $cypher_length) {
-            trigger_error("Length in header ({$header_length}) doesn't match actual message length ({$cypher_length}).");
+            return '';
+            //trigger_error("Length in header ({$header_length}) doesn't match actual message length ({$cypher_length}).");
         }
         return $clear_text;
     }

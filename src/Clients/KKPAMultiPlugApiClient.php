@@ -183,6 +183,30 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
     }
   }
 
+  public function getStats()
+  {
+    $return = array();
+    if ($this->is_featured('ENE'))
+    {
+      $date_from = mktime(0,0,0,intval(date('n')),intval(date('j')-30));
+      for ($i=0;mktime(0,0,0,date('n',$date_from)+$i,1,date('Y',$date_from))<=mktime();$i++)
+      {
+        $date = mktime(0,0,0,date('n',$date_from)+$i,1,date('Y',$date_from));
+        $month = intval(date('n',$date));
+        $year = intval(date('Y',$date));
+        $request_arr = array("emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
+        $data = $this->send($request_arr);
+        $day_list = $data["day_list"];
+        foreach($day_list as $day_data)
+        {
+            $return[] = self::uniformizeRealTime($day_data,'energy','energy_wh',1);
+            //return floatval($day_data['energy_wh']/1000);
+        }
+      }
+    }
+    return $return;
+  }
+
   public function getDayStats($i_year,$i_month,$i_day)
   {
     $year = intval($i_year);
@@ -192,18 +216,61 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
     {
       if ($this->is_featured('ENE'))
       {
-        $request_arr = array("emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
-        $data = $this->send($request_arr);
-        $day_list = $data["day_list"];
-        foreach($day_list as $day_data)
+        $result = $this->getStats();
+        foreach($result as $day_data)
         {
-          if (intval($day_data['day']) == $day)
+          if (intval($day_data['year']) == $year && intval($day_data['month']) == $month && intval($day_data['day']) == $day)
             return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
-            //return floatval($day_data['energy_wh']/1000);
         }
         return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
       }
     }
+  }
+
+  public function getTodayStats()
+  {
+    $year = intval(date('Y'));
+    $month = intval(date('n'));
+    $day = intval(date('j'));
+    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    {
+      if ($this->is_featured('ENE'))
+      {
+        $result = $this->getStats();
+        foreach($result as $day_data)
+        {
+          if (intval($day_data['year']) == $year && intval($day_data['month']) == $month && intval($day_data['day']) == $day)
+            return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
+        }
+        return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
+      }
+    }
+  }
+
+  public function getXDaysStats($nb_days)
+  {
+    if ($this->is_featured('ENE'))
+    {
+      $result = $this->getStats();
+      $energy = floatval(0);
+      $date_from = mktime(0,0,0,date('n'),date('j')-$nb_days);
+      foreach($result as $day_data)
+      {
+        if (mktime(0,0,0,intval($day_data['month']),intval($day_data['day']),intval($day_data['year'])) >= $date_from)
+          $energy += $day_data['energy'];
+      }
+      return array("energy"=>floatval($energy));
+    }
+  }
+
+  public function get7DaysStats()
+  {
+    return $this->getXDaysStats(7);
+  }
+
+  public function get30DaysStats()
+  {
+    return $this->getXDaysStats(30);
   }
 
   public function getMonthStats($i_year,$i_month)

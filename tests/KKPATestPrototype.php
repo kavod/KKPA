@@ -320,13 +320,56 @@ class KKPATestPrototype extends TestCase
     public function testGetDayStats():void
     {
       $client = $this::instance(self::$conf);
-      //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
         if ($device->is_featured('ENE'))
         {
           $return = $device->getDayStats(date("y"),date("n"),date("j"));
+          $this->assertInternalType("double",$return['energy']);
+        }
+      }
+      //print_r($device::debug_last_request());
+    }
+
+    public function testGetTodayStats():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->is_featured('ENE'))
+        {
+          $return = $device->getTodayStats();
+          $this->assertInternalType("double",$return['energy']);
+        }
+      }
+      //print_r($device::debug_last_request());
+    }
+
+    public function testGet7DaysStats():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->is_featured('ENE'))
+        {
+          $return = $device->get7DaysStats();
+          $this->assertInternalType("double",$return['energy']);
+        }
+      }
+    }
+
+    public function testGet30DaysStats():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->is_featured('ENE'))
+        {
+          $return = $device->get30DaysStats();
           $this->assertInternalType("double",$return['energy']);
         }
       }
