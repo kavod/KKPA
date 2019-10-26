@@ -183,6 +183,50 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
     }
   }
 
+  public function getDayStats($i_year,$i_month,$i_day)
+  {
+    $year = intval($i_year);
+    $month = intval($i_month);
+    $day = intval($i_day);
+    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    {
+      if ($this->is_featured('ENE'))
+      {
+        $request_arr = array("emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
+        $data = $this->send($request_arr);
+        $day_list = $data["day_list"];
+        foreach($day_list as $day_data)
+        {
+          if (intval($day_data['day']) == $day)
+            return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
+            //return floatval($day_data['energy_wh']/1000);
+        }
+        return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
+      }
+    }
+  }
+
+  public function getMonthStats($i_year,$i_month)
+  {
+    $year = intval($i_year);
+    $month = intval($i_month);
+    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    {
+      if ($this->is_featured('ENE'))
+      {
+        $request_arr = array("emeter" => array("get_monthstat" => array("year"=>$year)));
+        $data = $this->send($request_arr);
+        $month_list = $data["month_list"];
+        foreach($month_list as $month_data)
+        {
+          if (intval($month_data['month']) == $month)
+            return self::uniformizeRealTime($month_data,'energy','energy_wh',1);
+        }
+        return array('year'=>$year, 'month' =>$month,"energy"=>floatval(0));
+      }
+    }
+  }
+
   protected static function uniformizeRealTime($realtime,$target,$source,$factor)
   {
     if (array_key_exists($source,$realtime))
