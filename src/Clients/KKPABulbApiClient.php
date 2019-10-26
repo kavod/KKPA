@@ -202,6 +202,7 @@ class KKPABulbApiClient extends KKPADeviceApiClient
 
   public function getStats()
   {
+    return $this->getGenericStats("smartlife.iot.common.emeter");
     $return = array();
     if ($this->is_featured('ENE'))
     {
@@ -222,66 +223,6 @@ class KKPABulbApiClient extends KKPADeviceApiClient
       }
     }
     return $return;
-  }
-
-  public function getDayStats($i_year,$i_month,$i_day)
-  {
-    $year = intval($i_year);
-    $month = intval($i_month);
-    $day = intval($i_day);
-    $request_arr = array("smartlife.iot.common.emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
-    $data = $this->send($request_arr);
-    $day_list = $data["day_list"];
-    foreach($day_list as $day_data)
-    {
-      if (intval($day_data['day']) == $day)
-        return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
-        //return floatval($day_data['energy_wh']/1000);
-    }
-    return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
-  }
-
-  public function getTodayStats()
-  {
-    $year = intval(date('Y'));
-    $month = intval(date('n'));
-    $day = intval(date('j'));
-    if ($this->is_featured('ENE'))
-    {
-      $result = $this->getStats();
-      foreach($result as $day_data)
-      {
-        if (intval($day_data['year']) == $year && intval($day_data['month']) == $month && intval($day_data['day']) == $day)
-          return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
-      }
-      return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
-    }
-  }
-
-  public function getXDaysStats($nb_days)
-  {
-    if ($this->is_featured('ENE'))
-    {
-      $result = $this->getStats();
-      $energy = floatval(0);
-      $date_from = mktime(0,0,0,date('n'),date('j')-$nb_days);
-      foreach($result as $day_data)
-      {
-        if (mktime(0,0,0,intval($day_data['month']),intval($day_data['day']),intval($day_data['year'])) >= $date_from)
-          $energy += $day_data['energy'];
-      }
-      return array("energy"=>floatval($energy));
-    }
-  }
-
-  public function get7DaysStats()
-  {
-    return $this->getXDaysStats(7);
-  }
-
-  public function get30DaysStats()
-  {
-    return $this->getXDaysStats(30);
   }
 
   public function getMonthStats($i_year,$i_month)
@@ -315,23 +256,6 @@ class KKPABulbApiClient extends KKPADeviceApiClient
       return $realtime;
     }
     return array("wattage"=>$cur_wattage);
-  }
-
-  protected static function uniformizeRealTime($realtime,$target,$source,$factor)
-  {
-    if (array_key_exists($source,$realtime))
-    {
-      $realtime[$target] = $realtime[$source]/$factor;
-      unset($realtime[$source]);
-    }
-    if (!array_key_exists($target,$realtime))
-      throw new KKPAApiErrorType(
-        996,
-        "Missing value: ".$target." in ".print_r($realtime,true),
-        "Error"
-      );
-    $realtime[$target] = floatval($realtime[$target]);
-    return $realtime;
   }
 
   public function is_featured($feature)

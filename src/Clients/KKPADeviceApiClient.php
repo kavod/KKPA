@@ -109,6 +109,110 @@ class KKPADeviceApiClient extends KKPAApiClient
     }
   }
 
+  public function getGenericStats($key)
+  {
+    $return = array();
+    if ($this->is_featured('ENE'))
+    {
+      $date_from = strtotime('-30 days');
+      for ($i=0;strtotime('First day of '.date('F Y',strtotime('+'.$i.' month',$date_from)))<=time();$i++)
+      {
+        $date = strtotime('First day of '.date('F Y',strtotime('+'.$i.' month',$date_from)));
+        $month = intval(date('n',$date));
+        $year = intval(date('Y',$date));
+        $request_arr = array($key => array("get_daystat" => array("year"=>$year,"month"=>$month)));
+        $data = $this->send($request_arr);
+        $day_list = $data["day_list"];
+        foreach($day_list as $day_data)
+        {
+            $return[] = self::uniformizeRealTime($day_data,'energy','energy_wh',1);
+        }
+      }
+    }
+    return $return;
+  }
+
+  public function getDayStats($i_year,$i_month,$i_day)
+  {
+    $year = intval($i_year);
+    $month = intval($i_month);
+    $day = intval($i_day);
+    if ($this->is_featured('ENE'))
+    {
+      $result = $this->getStats();
+      foreach($result as $day_data)
+      {
+        if (intval($day_data['year']) == $year && intval($day_data['month']) == $month && intval($day_data['day']) == $day)
+          return self::uniformizeRealTime($day_data,'energy','energy_wh',1);
+      }
+    }
+    return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
+  }
+
+  public function getTodayStats()
+  {
+    $year = intval(date('Y'));
+    $month = intval(date('n'));
+    $day = intval(date('j'));
+    if ($this->getType('IOT.SMARTPLUGSWITCH'))
+    {
+      if ($this->is_featured('ENE'))
+      {
+        $result = $this->getStats();
+        foreach($result as $day_data)
+        {
+          if (intval($day_data['year']) == $year && intval($day_data['month']) == $month && intval($day_data['day']) == $day)
+            return $day_data;
+        }
+      }
+    }
+    return array('year'=>$year, 'month' =>$month, 'day'=>$day,"energy"=>floatval(0));
+  }
+
+  public function getXDaysStats($nb_days)
+  {
+    if ($this->is_featured('ENE'))
+    {
+      $result = $this->getStats();
+      $energy = floatval(0);
+      $date_from = strtotime('-'.$nb_days.' days');
+      foreach($result as $day_data)
+      {
+        if (strtotime($day_data['month']."-".$day_data['day']."-".$day_data['year']) >= $date_from)
+          $energy += $day_data['energy'];
+      }
+      return array("energy"=>floatval($energy));
+    }
+    return array("energy"=>floatval(0));
+  }
+
+  public function get7DaysStats()
+  {
+    return $this->getXDaysStats(7);
+  }
+
+  public function get30DaysStats()
+  {
+    return $this->getXDaysStats(30);
+  }
+
+  protected static function uniformizeRealTime($realtime,$target,$source,$factor)
+  {
+    if (array_key_exists($source,$realtime))
+    {
+      $realtime[$target] = $realtime[$source]/$factor;
+      unset($realtime[$source]);
+    }
+    if (!array_key_exists($target,$realtime))
+      throw new KKPAApiErrorType(
+        996,
+        "Missing value: ".$target." in ".print_r($realtime,true),
+        "Error"
+      );
+    $realtime[$target] = floatval($realtime[$target]);
+    return $realtime;
+  }
+
   static protected function uniformizeSysinfo($sysinfo)
   {
     $sysinfo['type'] = self::readType($sysinfo);
