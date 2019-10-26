@@ -317,6 +317,38 @@ class KKPATestPrototype extends TestCase
       //print_r($device::debug_last_request());
     }
 
+    public function testGetDayStats():void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->is_featured('ENE'))
+        {
+          $return = $device->getDayStats(date("y"),date("n"),date("j"));
+          $this->assertInternalType("double",$return['energy']);
+        }
+      }
+      //print_r($device::debug_last_request());
+    }
+
+    public function testGetMonthStats():void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      foreach($deviceList as $device)
+      {
+        if ($device->is_featured('ENE'))
+        {
+          $return = $device->getMonthStats(date("y"),date("n"));
+          $this->assertInternalType("double",$return['energy']);
+        }
+      }
+      //print_r($device::debug_last_request());
+    }
+
     public function testIsFeatured():void
     {
       $client = $this::instance(self::$conf);
