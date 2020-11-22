@@ -178,7 +178,8 @@ class KKPADeviceApiClient extends KKPAApiClient
       $date_from = strtotime('-'.$nb_days.' days');
       foreach($result as $day_data)
       {
-        if (strtotime($day_data['month']."-".$day_data['day']."-".$day_data['year']) >= $date_from)
+        $str_date = $day_data['month']."-".$day_data['day']."-".$day_data['year'];
+        if (\DateTime::createFromFormat('m-d-Y', $str_date)->getTimestamp() > $date_from)
           $energy += $day_data['energy'];
       }
       return array("energy"=>floatval($energy));
