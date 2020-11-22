@@ -61,5 +61,10 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
       $this->checkLatLong('longitude',$decode['system']['get_sysinfo']);
       $this->checkLatLong('longitude_i',$decode['system']['get_sysinfo']);
     }
+
+    public function testMultiSlots():void
+    {
+      $this->assertTrue(true); // Pass since I do not own this kind of device
+    }
 }
 ?>

@@ -20,6 +20,13 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
     parent::__construct($config);
   }*/
 
+  protected static function translate_single_id($ids)
+  {
+    if (!is_array($ids))
+      return array($ids);
+    return $ids;
+  }
+
   protected function sendSlots($request,$id)
   {
     $context_arr = array("child_ids" => array($id), "source" => "Kasa_Android");
@@ -30,6 +37,7 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
 
   public function setSlotRelayState($state,$ids)
   {
+    $ids = self::translate_single_id($ids);
     $state = boolval($state);
     if ($state) $state = 1; else $state = 0;
     $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
@@ -41,11 +49,13 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
 
   public function switchSlotOn($ids)
   {
+    $ids = self::translate_single_id($ids);
     $this->setSlotRelayState(1,$ids);
   }
 
   public function switchSlotOff($ids)
   {
+    $ids = self::translate_single_id($ids);
     $this->setSlotRelayState(0,$ids);
   }
 
@@ -73,7 +83,7 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
       if ($child['id'] == $id)
         return $child['state'];
     }
-    throw new KKPAClientException(994,"No child with ID ".$id,"Error");
+    throw new KKPAClientException(994,"No child with ID ".print_r($id,true),"Error");
   }
 
   public function getState()
@@ -99,7 +109,7 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
     throw new KKPAClientException(994,"No child with ID ".$id,"Error");
   }
 
-  protected function getAllIds()
+  public function getAllIds()
   {
     $result = array();
     $children = $this->getVariable('children');
@@ -144,14 +154,25 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
   {
     $ids = $this->getAllIds();
 
-    $realtime = array("power"=>0.0,"voltage"=>0.0,"current"=>0.0,"total"=>0.0);
+    $realtime = array(
+      "power"=>0.0,
+      "voltage"=>0.0,
+      "current"=>0.0,
+      "total"=>0.0,
+      "children"=>array()
+    );
 
     foreach($ids as $id)
     {
       $slot_realtime = $this->getSlotRealTime($id);
+      $realtime['children'][$id] = array();
+      $realtime['children'][$id]['power'] = $slot_realtime['power'];
       $realtime['power'] += $slot_realtime['power'];
+      $realtime['children'][$id]['power'] = $slot_realtime['voltage'];
       $realtime['voltage'] += $slot_realtime['voltage'];
+      $realtime['children'][$id]['power'] = $slot_realtime['current'];
       $realtime['current'] += $slot_realtime['current'];
+      $realtime['children'][$id]['power'] = $slot_realtime['total'];
       $realtime['total'] += $slot_realtime['total'];
       if ($slot_realtime['err_code'] != 0)
         $realtime['err_code'] = $slot_realtime['err_code'];
@@ -232,6 +253,8 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
   public function is_featured($feature)
   {
     if ($feature=='LED')
+      return true;
+    if ($feature=='MUL')
       return true;
     return (strpos($this->getVariable('feature',''),$feature)!==false);
   }

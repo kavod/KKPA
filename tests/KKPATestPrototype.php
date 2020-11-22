@@ -414,12 +414,20 @@ class KKPATestPrototype extends TestCase
               $this->assertFalse($device->is_featured('TMP'));
               break;
             case 'HS110':
+              $this->assertTrue($device->is_featured('TIM'));
+              $this->assertTrue($device->is_featured('ENE'));
+              $this->assertFalse($device->is_featured('DIM'));
+              $this->assertFalse($device->is_featured('COL'));
+              $this->assertFalse($device->is_featured('TMP'));
+              $this->assertFalse($device->is_featured('MUL'));
+              break;
             case 'HS300':
               $this->assertTrue($device->is_featured('TIM'));
               $this->assertTrue($device->is_featured('ENE'));
               $this->assertFalse($device->is_featured('DIM'));
               $this->assertFalse($device->is_featured('COL'));
               $this->assertFalse($device->is_featured('TMP'));
+              $this->assertTrue($device->is_featured('MUL'));
               break;
             case 'LB130':
               $this->assertTrue($device->is_featured('COL'));
@@ -571,6 +579,73 @@ class KKPATestPrototype extends TestCase
         }
       }
       //print_r($device::debug_last_request());
+    }
+
+    public function testMultiSlots():void
+    {
+      $client = $this::instance(self::$conf);
+      //$deviceList = $client->getDeviceList();
+      $deviceList = array_merge(array(),self::$ref_deviceList);
+      // print_r($client::debug_last_request());
+      foreach($deviceList as $device)
+      {
+        // print_r($device);
+        // print_r($device->is_featured('MUL'));
+        if ($device->is_featured('MUL'))
+        {
+          $slots_id = $device->getAllIds();
+          $this->assertIsArray($slots_id);
+          foreach($slots_id as $slot)
+          {
+            // Switch On/Off
+            $device->switchSlotOff(array($slot));
+            sleep(DELAY_BEFORE_STATE);
+            $this->assertEquals(
+              $device->getSlotState($slot),
+              0
+            );
+            $device->switchSlotOn(array($slot));
+            sleep(DELAY_BEFORE_STATE);
+            $this->assertEquals(
+              $device->getSlotState($slot),
+              1
+            );
+            $device->switchSlotOff(array($slot));
+            sleep(DELAY_BEFORE_STATE);
+            $this->assertEquals(
+              $device->getSlotState($slot),
+              0
+            );
+
+            // ENE
+            $realTime = $device->getSlotRealTime($slot);
+            $this->assertIsFloat($realTime['power']);
+            $this->assertIsFloat($realTime['voltage']);
+            $this->assertIsFloat($realTime['current']);
+            $this->assertIsFloat($realTime['total']);
+
+            // // LED
+            // $device->setLedOff();
+            // sleep(DELAY_BEFORE_STATE);
+            // $this->assertEquals(
+            //   $device->getLedState(),
+            //   0
+            // );
+            // $device->setLedOn();
+            // sleep(DELAY_BEFORE_STATE);
+            // $this->assertEquals(
+            //   $device->getLedState(),
+            //   1
+            // );
+            // $device->setLedOff();
+            // sleep(DELAY_BEFORE_STATE);
+            // $this->assertEquals(
+            //   $device->getLedState(),
+            //   0
+            // );
+          }
+        }
+      }
     }
 }
 ?>
