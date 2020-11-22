@@ -3,3 +3,4 @@ old/*
 composer.lock
 vendor/*
 tests/testRequests.php
+.phpunit*

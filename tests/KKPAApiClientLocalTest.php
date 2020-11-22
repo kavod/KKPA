@@ -7,7 +7,7 @@ require_once('KKPATestPrototype.php');
 
 final class KKPAApiClientLocalTest extends \KKPATestPrototype
 {
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass():void
     {
       require(__ROOT__.'/Examples/Config.php');
       self::$ref_testDeviceList = $deviceList;

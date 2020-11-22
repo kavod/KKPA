@@ -14,7 +14,7 @@ class KKPATestPrototype extends TestCase
     protected static $ref_deviceList;
     protected static $ref_testDeviceList = array();
 
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass():void
     {
       self::$ref_deviceList = array();
       self::$ref_client = new KKPA\Clients\KKPAApiClient(self::$conf);
@@ -68,7 +68,7 @@ class KKPATestPrototype extends TestCase
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
       $found = array();
-      $this->assertInternalType('array',$deviceList);
+      $this->assertIsArray($deviceList);
       foreach($deviceList as $device)
       {
         $this->assertFalse(in_array($device->getVariable('deviceId',''),$found));
@@ -99,25 +99,25 @@ class KKPATestPrototype extends TestCase
       $client = $this::instance(self::$conf);
       $deviceList = $client->getDeviceList();
       $last_request = $client::debug_last_request();
-      $this->assertInternalType('array',$last_request);
+      $this->assertIsArray($last_request);
       $this->assertArrayHasKey('request',$last_request);
       $this->assertArrayHasKey('result',$last_request);
       $this->assertArrayHasKey('errno',$last_request);
-      $this->assertInternalType('string',$last_request['request']);
-      $this->assertInternalType('string',$last_request['result']);
-      $this->assertInternalType('int',$last_request['errno']);
+      $this->assertIsString($last_request['request']);
+      $this->assertIsString($last_request['result']);
+      $this->assertIsInt($last_request['errno']);
       $decode = json_decode($last_request['result'], TRUE);
       $this->assertFalse(!$decode);
       $device = $deviceList[0];
       $sysInfo = $device->getSysInfo();
       $last_request = $device::debug_last_request();
-      $this->assertInternalType('array',$last_request);
+      $this->assertIsArray($last_request);
       $this->assertArrayHasKey('request',$last_request);
       $this->assertArrayHasKey('result',$last_request);
       $this->assertArrayHasKey('errno',$last_request);
-      $this->assertInternalType('string',$last_request['request']);
-      $this->assertInternalType('string',$last_request['result']);
-      $this->assertInternalType('int',$last_request['errno']);
+      $this->assertIsString($last_request['request']);
+      $this->assertIsString($last_request['result']);
+      $this->assertIsInt($last_request['errno']);
       $decode = json_decode($last_request['result'], TRUE);
       $this->assertFalse(!$decode);
       $this->checkLatLong('latitude',$decode['system']['get_sysinfo']);
@@ -153,11 +153,11 @@ class KKPATestPrototype extends TestCase
       foreach($deviceList as $device)
       {
         $sysInfo = $device->getSysInfo();
-        $this->assertInternalType("string",$sysInfo['alias']);
-        $this->assertInternalType("string",$sysInfo['dev_name']);
+        $this->assertIsString($sysInfo['alias']);
+        $this->assertIsString($sysInfo['dev_name']);
         if ($device->getModel()!='HS300')
           $this->assertGreaterThan(0,strlen($sysInfo['dev_name']));
-        $this->assertInternalType("int",$sysInfo['rssi']);
+        $this->assertIsInt($sysInfo['rssi']);
       }
       //print_r($device::debug_last_request());
     }
@@ -271,7 +271,7 @@ class KKPATestPrototype extends TestCase
       $client = $this::instance(self::$conf);
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
-      $this->assertInternalType('array',$deviceList);
+      $this->assertIsArray($deviceList);
       foreach($deviceList as $device)
       {
         if ($device->is_featured('LED'))
@@ -311,7 +311,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $realTime = $device->getRealTime();
-          $this->assertInternalType("double",$realTime['power']);
+          $this->assertIsFloat($realTime['power']);//double?
         }
       }
       //print_r($device::debug_last_request());
@@ -326,7 +326,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $return = $device->getDayStats(date("y"),date("n"),date("j"));
-          $this->assertInternalType("double",$return['energy']);
+          $this->assertIsFloat($return['energy']);//double
         }
       }
       //print_r($device::debug_last_request());
@@ -341,7 +341,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $return = $device->getTodayStats();
-          $this->assertInternalType("double",$return['energy']);
+          $this->assertIsFloat($return['energy']);//double
         }
       }
       //print_r($device::debug_last_request());
@@ -356,7 +356,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $return = $device->get7DaysStats();
-          $this->assertInternalType("double",$return['energy']);
+          $this->assertIsFloat($return['energy']);//double
         }
       }
     }
@@ -370,7 +370,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $return = $device->get30DaysStats();
-          $this->assertInternalType("double",$return['energy']);
+          $this->assertIsFloat($return['energy']);//double
         }
       }
       //print_r($device::debug_last_request());
@@ -386,7 +386,7 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('ENE'))
         {
           $return = $device->getMonthStats(date("y"),date("n"));
-          $this->assertInternalType("double",$return['energy']);
+          $this->assertIsFloat($return['energy']); //double
         }
       }
       //print_r($device::debug_last_request());
@@ -399,8 +399,8 @@ class KKPATestPrototype extends TestCase
       $deviceList = array_merge(array(),self::$ref_deviceList);
       foreach($deviceList as $device)
       {
-        if ($device->getType()=='IOT.SMARTPLUGSWITCH')
-        {
+        // if ($device->getType()=='IOT.SMARTPLUGSWITCH')
+        // {
           switch(substr($device->getVariable('model',''),0,5))
           {
             case 'HS100':
@@ -423,17 +423,29 @@ class KKPATestPrototype extends TestCase
               break;
             case 'LB130':
               $this->assertTrue($device->is_featured('COL'));
+              $this->assertTrue($device->is_featured('TMP'));
+              $this->assertFalse($device->is_featured('TIM'));
+              $this->assertTrue($device->is_featured('DIM'));
+              $this->assertTrue($device->is_featured('ENE'));
+              break;
             case 'LB120':
               $this->assertTrue($device->is_featured('TMP'));
-            case 'LB100':
+              $this->assertFalse($device->is_featured('COL'));
               $this->assertFalse($device->is_featured('TIM'));
-              $this->assertFalse($device->is_featured('ENE'));
               $this->assertTrue($device->is_featured('DIM'));
+              $this->assertTrue($device->is_featured('ENE'));
+              break;
+            case 'LB100':
+              $this->assertFalse($device->is_featured('COL'));
+              $this->assertFalse($device->is_featured('TMP'));
+              $this->assertFalse($device->is_featured('TIM'));
+              $this->assertTrue($device->is_featured('DIM'));
+              $this->assertFalse($device->is_featured('ENE'));
               break;
             default:
               break;
           }
-        }
+        // }
       }
       //print_r($device::debug_last_request());
     }
@@ -448,7 +460,7 @@ class KKPATestPrototype extends TestCase
         if ($device->getType()=='IOT.SMARTBULB')
         {
           $lightDetails = $device->getLightDetails();
-          $this->assertInternalType("int",$lightDetails['wattage']);
+          $this->assertIsInt($lightDetails['wattage']);
         }
       }
       //print_r($device::debug_last_request());
