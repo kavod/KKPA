@@ -11,80 +11,12 @@ use KKPA\Exceptions\KKPAInternalErrorType;
 use KKPA\Exceptions\KKPANotLoggedErrorType;
 use KKPA\Common\KKPARestErrorCode;
 
-class KKPAMultiPlugApiClient extends KKPADeviceApiClient
+class KKPAMultiPlugApiClient extends KKPAPlugApiClient
 {
-  protected $deviceId;
-  public $children_obj = array();
   /*public function __construct($config = array())
   {
     parent::__construct($config);
   }*/
-
-  protected static function translate_single_id($ids)
-  {
-    if (!is_array($ids))
-      return array($ids);
-    return $ids;
-  }
-
-  protected function sendSlots($request,$id)
-  {
-    $context_arr = array("child_ids" => array($id), "source" => "Kasa_Android");
-    $request['context'] = $context_arr;
-    $context_json = json_encode($request);
-    return $this->send($request);
-  }
-
-  public function setSlotRelayState($state,$ids)
-  {
-    $ids = self::translate_single_id($ids);
-    $state = boolval($state);
-    if ($state) $state = 1; else $state = 0;
-    $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
-    foreach($ids as $id)
-    {
-      $this->sendSlots($request_arr,$id);
-    }
-  }
-
-  public function switchSlotOn($ids)
-  {
-    $ids = self::translate_single_id($ids);
-    $this->setSlotRelayState(1,$ids);
-  }
-
-  public function switchSlotOff($ids)
-  {
-    $ids = self::translate_single_id($ids);
-    $this->setSlotRelayState(0,$ids);
-  }
-
-  public function setRelayState($state)
-  {
-    $ids = $this->getAllIds();
-    $this->setSlotRelayState($ids);
-  }
-
-  public function switchOn()
-  {
-    $this->setSlotRelayState(1,$this->getAllIds());
-  }
-
-  public function switchOff()
-  {
-    $this->setSlotRelayState(0,$this->getAllIds());
-  }
-
-  public function getSlotState($id)
-  {
-    $sysinfo = $this->getSysInfo("children");
-    foreach($sysinfo['children'] as $child)
-    {
-      if ($child['id'] == $id)
-        return $child['state'];
-    }
-    throw new KKPAClientException(994,"No child with ID ".print_r($id,true),"Error");
-  }
 
   public function getState()
   {
@@ -95,159 +27,21 @@ class KKPAMultiPlugApiClient extends KKPADeviceApiClient
       $sysinfo = $this->getSysInfo("children");
       foreach($sysinfo['children'] as $child)
       {
-        if ($child['state'])
-          $on++;
-        else
-          $off++;
+        if (is_null($this->child_id) || $child['id']==$this->child_id)
+        {
+          if ($child['state'])
+            $on++;
+          else
+            $off++;
+        }
       }
       if ($on*$off)
         return -1;
       else {
-        return ($on>1) ? 1 : 0;
+        return ($on>0) ? 1 : 0;
       }
     }
     throw new KKPAClientException(994,"No child with ID ".$id,"Error");
-  }
-
-  public function getAllIds()
-  {
-    $result = array();
-    $children = $this->getVariable('children');
-    foreach($children as $child)
-    {
-      $result[] = /*$this->deviceId.*/$child['id'];
-    }
-    return $result;
-  }
-
-  public function setLedState($state)
-  {
-    $state = boolval($state);
-    if (!$state) $state = 1; else $state = 0;
-    $request_arr = array("system" => array("set_led_off" => array("off" => $state)));
-    $this->send($request_arr);
-  }
-
-  public function setLedOn()
-  {
-    $this->setLedState(1);
-  }
-
-  public function setLedOff()
-  {
-    $this->setLedState(0);
-  }
-
-  public function getLedState()
-  {
-    if ($this->is_featured('LED'))
-    {
-      $sysinfo = $this->getSysInfo("led_off");
-      return ($sysinfo['led_off']==0);
-    } else {
-      return null;
-    }
-
-  }
-
-  public function getRealTime()
-  {
-    $ids = $this->getAllIds();
-
-    $realtime = array(
-      "power"=>0.0,
-      "voltage"=>0.0,
-      "current"=>0.0,
-      "total"=>0.0,
-      "children"=>array()
-    );
-
-    foreach($ids as $id)
-    {
-      $slot_realtime = $this->getSlotRealTime($id);
-      $realtime['children'][$id] = array();
-      $realtime['children'][$id]['power'] = $slot_realtime['power'];
-      $realtime['power'] += $slot_realtime['power'];
-      $realtime['children'][$id]['power'] = $slot_realtime['voltage'];
-      $realtime['voltage'] += $slot_realtime['voltage'];
-      $realtime['children'][$id]['power'] = $slot_realtime['current'];
-      $realtime['current'] += $slot_realtime['current'];
-      $realtime['children'][$id]['power'] = $slot_realtime['total'];
-      $realtime['total'] += $slot_realtime['total'];
-      if ($slot_realtime['err_code'] != 0)
-        $realtime['err_code'] = $slot_realtime['err_code'];
-    }
-    return $realtime;
-  }
-
-  public function getSlotRealTime($id)
-  {
-    if ($this->is_featured('ENE'))
-    {
-      $sysinfo = $this->getVariable("children",array());
-      foreach($sysinfo as $child)
-      {
-        if ($child['id'] == $id)
-        {
-          $request_arr = array("emeter" => array("get_realtime" => NULL));
-          $realtime = $this->sendSlots($request_arr,$id);
-
-          $realtime = self::uniformizeRealTime($realtime,'voltage','voltage_mv',1000);
-          $realtime = self::uniformizeRealTime($realtime,'current','current_ma',1000);
-          $realtime = self::uniformizeRealTime($realtime,'power','power_mw',1000);
-          $realtime = self::uniformizeRealTime($realtime,'total','total_wh',1);
-
-          return $realtime;
-        }
-      }
-      throw new KKPAClientException(994,"No child with ID ".$id,"Error");
-    }
-  }
-
-  public function getStats()
-  {
-    return $this->getGenericStats("emeter");
-    $return = array();
-    if ($this->is_featured('ENE'))
-    {
-      $date_from = mktime(0,0,0,intval(date('n')),intval(date('j')-30));
-      for ($i=0;mktime(0,0,0,date('n',$date_from)+$i,1,date('Y',$date_from))<=mktime();$i++)
-      {
-        $date = mktime(0,0,0,date('n',$date_from)+$i,1,date('Y',$date_from));
-        $month = intval(date('n',$date));
-        $year = intval(date('Y',$date));
-        $request_arr = array("emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
-        $data = $this->send($request_arr);
-        $day_list = $data["day_list"];
-        foreach($day_list as $day_data)
-        {
-            $return[] = self::uniformizeRealTime($day_data,'energy','energy_wh',1);
-            //return floatval($day_data['energy_wh']/1000);
-        }
-      }
-    }
-    return $return;
-  }
-
-  public function getMonthStats($i_year,$i_month)
-  {
-    $year = intval($i_year);
-    $month = intval($i_month);
-    if ($this->getType('IOT.SMARTPLUGSWITCH'))
-    {
-      if ($this->is_featured('ENE'))
-      {
-        $request_arr = array("emeter" => array("get_monthstat" => array("year"=>$year)));
-        $data = $this->send($request_arr);
-        $month_list = $data["month_list"];
-        foreach($month_list as $month_data)
-        {
-          if (intval($month_data['month']) == $month)
-            return self::uniformizeRealTime($month_data,'energy','energy_wh',1);
-        }
-        return array('year'=>$year, 'month' =>$month,"energy"=>floatval(0));
-      }
-    }
   }
 
   public function is_featured($feature)

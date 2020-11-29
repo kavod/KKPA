@@ -142,7 +142,7 @@
         return array_pop($path);
     }
 
-    public function getDeviceByIp($ip,$port=9999)
+    public function getDeviceByIp($ip,$port=9999,$child_id=null)
     {
       if ($this->getVariable('cloud',1))
         throw new KKPAClientException(994,"getDeviceByIp cannot be used in Cloud mode","Error");
@@ -157,9 +157,17 @@
       switch($device->getType())
       {
         case 'IOT.SMARTPLUGSWITCH':
-          if ($device->getModel()=='HS300')
-            return new KKPAMultiPlugApiClient($conf);
-          return new KKPAPlugApiClient($conf);
+          if ($device->has_children())
+          {
+            if (is_null($child_id))
+            {
+              return new KKPAMultiPlugApiClient($conf);
+            } else {
+              return new KKPASlotPlugApiClient($conf,$child_id);
+            }
+          } else {
+            return new KKPAPlugApiClient($conf);
+          }
           break;
         case 'IOT.SMARTBULB':
           return new KKPABulbApiClient($conf);
@@ -167,7 +175,7 @@
       }
     }
 
-    public function getDeviceById($deviceId)
+    public function getDeviceById($deviceId,$child_id=null)
     {
       if ($this->getVariable('cloud',1)==1)
       {
@@ -177,9 +185,17 @@
         switch($device->getType())
         {
           case 'IOT.SMARTPLUGSWITCH':
-            if ($device->getModel()=='HS300')
-              return new KKPAMultiPlugApiClient($conf);
-            return new KKPAPlugApiClient($conf);
+            if ($device->has_children())
+            {
+              if (is_null($child_id))
+              {
+                return new KKPAMultiPlugApiClient($conf);
+              } else {
+                return new KKPASlotPlugApiClient($conf,$child_id);
+              }
+            } else {
+              return new KKPAPlugApiClient($conf);
+            }
             break;
           case 'IOT.SMARTBULB':
             return new KKPABulbApiClient($conf);
@@ -852,6 +868,13 @@
       return array(
           "deviceList" => $result
       );
+    }
+
+    protected static function translate_single_id($ids)
+    {
+      if (!is_array($ids))
+        return array($ids);
+      return $ids;
     }
 }
  ?>

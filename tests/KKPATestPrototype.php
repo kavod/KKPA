@@ -60,18 +60,13 @@ class KKPATestPrototype extends TestCase
             KKPA\Clients\KKPADeviceApiClient::class,
             $device
         );
-    }
-
-    public function testGetDeviceList(): void
-    {
-      $client = $this::instance(self::$conf);
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
       $found = array();
       $this->assertIsArray($deviceList);
       foreach($deviceList as $device)
       {
-        $this->assertFalse(in_array($device->getVariable('deviceId',''),$found));
+        //$this->assertFalse(in_array($device->getVariable('deviceId',''),$found)); //since MultiSlot
         $found[] = $device->getVariable('deviceId','');
         switch($device->getType())
         {
@@ -427,7 +422,7 @@ class KKPATestPrototype extends TestCase
               $this->assertFalse($device->is_featured('DIM'));
               $this->assertFalse($device->is_featured('COL'));
               $this->assertFalse($device->is_featured('TMP'));
-              $this->assertTrue($device->is_featured('MUL'));
+              //$this->assertTrue($device->is_featured('MUL'));
               break;
             case 'LB130':
               $this->assertTrue($device->is_featured('COL'));
@@ -593,57 +588,61 @@ class KKPATestPrototype extends TestCase
         // print_r($device->is_featured('MUL'));
         if ($device->is_featured('MUL'))
         {
+          $this->assertTrue($device->has_children());
+
           $slots_id = $device->getAllIds();
           $this->assertIsArray($slots_id);
-          foreach($slots_id as $slot)
-          {
-            // Switch On/Off
-            $device->switchSlotOff(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              0
-            );
-            $device->switchSlotOn(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              1
-            );
-            $device->switchSlotOff(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              0
-            );
-
-            // ENE
-            $realTime = $device->getSlotRealTime($slot);
-            $this->assertIsFloat($realTime['power']);
-            $this->assertIsFloat($realTime['voltage']);
-            $this->assertIsFloat($realTime['current']);
-            $this->assertIsFloat($realTime['total']);
-
-            // // LED
-            // $device->setLedOff();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   0
-            // );
-            // $device->setLedOn();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   1
-            // );
-            // $device->setLedOff();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   0
-            // );
-          }
+          // foreach($slots_id as $slot)
+          // {
+          //   // Switch On/Off
+          //   $device->switchSlotOff(array($slot));
+          //   sleep(DELAY_BEFORE_STATE);
+          //   $this->assertEquals(
+          //     $device->getSlotState($slot),
+          //     0
+          //   );
+          //   $device->switchSlotOn(array($slot));
+          //   sleep(DELAY_BEFORE_STATE);
+          //   $this->assertEquals(
+          //     $device->getSlotState($slot),
+          //     1
+          //   );
+          //   $device->switchSlotOff(array($slot));
+          //   sleep(DELAY_BEFORE_STATE);
+          //   $this->assertEquals(
+          //     $device->getSlotState($slot),
+          //     0
+          //   );
+          //
+          //   // ENE
+          //   $realTime = $device->getSlotRealTime($slot);
+          //   $this->assertIsFloat($realTime['power']);
+          //   $this->assertIsFloat($realTime['voltage']);
+          //   $this->assertIsFloat($realTime['current']);
+          //   $this->assertIsFloat($realTime['total']);
+          //
+          //   // // LED
+          //   // $device->setLedOff();
+          //   // sleep(DELAY_BEFORE_STATE);
+          //   // $this->assertEquals(
+          //   //   $device->getLedState(),
+          //   //   0
+          //   // );
+          //   // $device->setLedOn();
+          //   // sleep(DELAY_BEFORE_STATE);
+          //   // $this->assertEquals(
+          //   //   $device->getLedState(),
+          //   //   1
+          //   // );
+          //   // $device->setLedOff();
+          //   // sleep(DELAY_BEFORE_STATE);
+          //   // $this->assertEquals(
+          //   //   $device->getLedState(),
+          //   //   0
+          //   // );
+          // }
+        } else {
+          $this->assertFalse($device->has_children());
         }
       }
     }

@@ -22,6 +22,13 @@ final class KKPAApiClientLocalTest extends \KKPATestPrototype
       foreach(self::$ref_testDeviceList as $device)
       {
         self::$ref_deviceList[] = self::$ref_client->getDeviceByIp($device['ip']);
+        if (array_key_exists('children',$device))
+        {
+          foreach($device['children'] as $child_id)
+          {
+            self::$ref_deviceList[] = self::$ref_client->getDeviceByIp($device['ip'],$port=9999,$child_id);
+          }
+        }
       }
     }
 
@@ -38,6 +45,21 @@ final class KKPAApiClientLocalTest extends \KKPATestPrototype
           $device['deviceId'],
           $dev->getVariable('deviceId','')
         );
+        if (array_key_exists('children',$device))
+        {
+          foreach($device['children'] as $child_id)
+          {
+            $dev = self::$ref_client->getDeviceByIp($device['ip'],$port=9999,$child_id);
+            $this->assertEquals(
+              $device['model'],
+              $dev->getModel()
+            );
+            $this->assertEquals(
+              $device['deviceId'],
+              $dev->getVariable('deviceId','')
+            );
+          }
+        }
       }
     }
 
