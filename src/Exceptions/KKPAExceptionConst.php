@@ -14,5 +14,6 @@ define('KKPA_EMPTY_ANSWER', 990);
 define('KKPA_NOT_FOUND', 991); // {"error_code": 991,"msg": "Device $deviceId not found on network"}
 define('KKPA_NO_ROUTE_TO_HOST', 992); // {"error_code": 992,"msg": "Error $err during connection to $ip"}
 define('KKPA_NO_FEAT_COLOR', 993); // {"error_code": 993,"msg": "Device ".$this->getModel()." has not color changing"}
-define('KKPA_CHILD_ID_MANDATORY', 994); // {"error_code": 99,"msg": "Child id mandatorys"}
+define('KKPA_CHILD_ID_MANDATORY', 994); // {"error_code": 994,"msg": "Child id mandatory"}
+define('KKPA_CHILD_ID_NOT_FOUND', 995); // {"error_code": 995,"msg": ""Child id $child_id not found""}
  ?>

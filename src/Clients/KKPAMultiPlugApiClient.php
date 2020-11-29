@@ -18,6 +18,8 @@ class KKPAMultiPlugApiClient extends KKPAPlugApiClient
     parent::__construct($config);
   }*/
 
+  private $children;
+
   public function getState()
   {
     if ($this->is_featured('TIM'))
@@ -42,6 +44,56 @@ class KKPAMultiPlugApiClient extends KKPAPlugApiClient
       }
     }
     throw new KKPAClientException(994,"No child with ID ".$id,"Error");
+  }
+
+  public function getChildren()
+  {
+    if ($this->has_children())
+    {
+      if (is_null($this->children))
+      {
+        $conf = array(
+          "cloud" => $this->cloud,
+          "local_ip" => $this->local_ip,
+          "local_port" => $this->local_port,
+          "token" => $this->token,
+          "uuid" => $this->uuid,
+          "username" => $this->getVariable('username',''),
+          "password" => $this->getVariable('password','')
+        );
+        $children = array();
+        foreach($this->getVariable('children',array()) as $child)
+        {
+          $children[] = new KKPASlotPlugApiClient($conf,$child['id']);
+        }
+        $this->children = $children;
+      }
+      return $this->children;
+    }
+    return array();
+  }
+
+  public function getRealTime()
+  {
+    if ($this->is_featured('ENE'))
+    {
+      if (is_null($this->child_id))
+      {
+        $realtime = array('voltage'=>0.0,'current'=>0.0,'power'=>0.0,'total'=>0.0);
+        foreach($this->getChildren() as $child)
+        {
+          $child_realtime = $child->getRealTime();
+          $realtime['voltage'] = $child_realtime['voltage'];
+          $realtime['current'] += $child_realtime['current'];
+          $realtime['power'] += $child_realtime['power'];
+          $realtime['total'] += $child_realtime['total'];
+        }
+        return $realtime;
+      } else {
+        return parent::getRealTime();
+      }
+    }
+    return array();
   }
 
   public function is_featured($feature)

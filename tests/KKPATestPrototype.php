@@ -609,6 +609,11 @@ class KKPATestPrototype extends TestCase
           KKPA\Clients\KKPADeviceApiClient::class,
           $device
         );
+        $this->assertIsArray($device->getSysInfo());
+        if ($device->is_featured('ENE'))
+        {
+          $this->assertIsArray($device->getRealTime());
+        }
       }
     }
 }

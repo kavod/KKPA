@@ -18,73 +18,34 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
     if (is_null($child_id))
       throw new KKPAClientException(KKPA_CHILD_ID_MANDATORY,"Child id mandatory","error");
     parent::__construct($config,null);
+    $conf = $this->getSysInfo();
+    $found = false;
+    foreach($conf['children'] as $child)
+    {
+      if ($child['id']==$child_id)
+      {
+        $found = true;
+        break;
+      }
+      if ($child['id']==$conf['deviceId'].$child_id)
+      {
+        $child_id = $conf['deviceId'].$child_id;
+        $found = true;
+        break;
+      }
+    }
+    if (!$found)
+      throw new KKPAClientException(KKPA_CHILD_ID_NOT_FOUND,"Child id $child_id not found","error");
     $this->child_id = $child_id;
+    //$this->child_id = (strpos($child_id,$conf['id'])===0) ? $child_id : $conf['id'].$child_id;
+
+    //$this->child_id = $child_id;
   }
 
   public function has_children()
   {
     return false;
   }
-/*
-  public function setRelayState($state)
-  {
-    parent::setSlotRelayState($state,array($this->child_id));
-  }
-
-  public function getState()
-  {
-    return parent::getState(array($this->child_id));
-  }
-
-  public function getRealTime()
-  {
-    if ($this->is_featured('ENE'))
-    {
-      return parent::getSlotRealTime(array($this->child_id));
-    }
-  }
-
-  public function getStats()
-  {
-    return $this->getGenericStats("emeter");
-    $return = array();
-    if ($this->is_featured('ENE'))
-    {
-      $date_from = strtotime('-30 days');
-      for ($i=0;strtotime('First day of '.date('F Y',strtotime('+'.$i.' month',$date_from)))<=time();$i++)
-      {
-        $date = strtotime('First day of '.date('F Y',strtotime('+'.$i.' month',$date_from)));
-        $month = intval(date('n',$date));
-        $year = intval(date('Y',$date));
-        $request_arr = array("emeter" => array("get_daystat" => array("year"=>$year,"month"=>$month)));
-        $data = $this->send($request_arr);
-        $day_list = $data["day_list"];
-        foreach($day_list as $day_data)
-        {
-            $return[] = self::uniformizeRealTime($day_data,'energy','energy_wh',1);
-        }
-      }
-    }
-    return $return;
-  }
-
-  public function getMonthStats($i_year,$i_month)
-  {
-    $year = intval($i_year);
-    $month = intval($i_month);
-    if ($this->is_featured('ENE'))
-    {
-      $request_arr = array("emeter" => array("get_monthstat" => array("year"=>$year)));
-      $data = $this->send($request_arr);
-      $month_list = $data["month_list"];
-      foreach($month_list as $month_data)
-      {
-        if (intval($month_data['month']) == $month)
-          return self::uniformizeRealTime($month_data,'energy','energy_wh',1);
-      }
-      return array('year'=>$year, 'month' =>$month,"energy"=>floatval(0));
-    }
-  }*/
 
   public function is_featured($feature)
   {
