@@ -18,7 +18,7 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
     if (is_null($child_id))
       throw new KKPAClientException(KKPA_CHILD_ID_MANDATORY,"Child id mandatory","error");
     parent::__construct($config,null);
-    $conf = $this->getSysInfo();
+    $conf = parent::getSysInfo();
     $found = false;
     foreach($conf['children'] as $child)
     {
@@ -35,7 +35,7 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
       }
     }
     if (!$found)
-      throw new KKPAClientException(KKPA_CHILD_ID_NOT_FOUND,"Child id $child_id not found","error");
+      throw new KKPAClientException(KKPA_CHILD_ID_NOT_FOUND,"Child id $child_id not found for ".$conf['deviceId'],"error");
     $this->child_id = $child_id;
     //$this->child_id = (strpos($child_id,$conf['id'])===0) ? $child_id : $conf['id'].$child_id;
 
@@ -45,6 +45,30 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
   public function has_children()
   {
     return false;
+  }
+
+  public function getSysInfo($info=NULL)
+  {
+    if (is_array($info))
+      $info[] = 'children';
+    elseif(is_string($info))
+      $info = array($info,'children');
+
+    $sysinfo = parent::getSysInfo($info);
+    if (array_key_exists('deviceId',$sysinfo))
+      $sysinfo['deviceId'] = $this->child_id;
+    if (array_key_exists('children',$sysinfo))
+    {
+      foreach($sysinfo['children'] as $child)
+      {
+        if ($child['id']==$this->child_id)
+        {
+          $sysinfo['alias'] = $child['alias'];
+          break;
+        }
+      }
+    }
+    return $sysinfo;
   }
 
   public function is_featured($feature)

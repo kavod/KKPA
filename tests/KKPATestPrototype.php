@@ -589,9 +589,24 @@ class KKPATestPrototype extends TestCase
         if ($device->is_featured('MUL'))
         {
           $this->assertTrue($device->has_children());
+          $deviceId = $device->getSysInfo('deviceId')['deviceId'];
 
           $slots_id = $device->getAllIds();
           $this->assertIsArray($slots_id);
+
+          $slots_obj = $device->getChildren();
+          $this->assertIsArray($slots_obj);
+          foreach($slots_obj as $slot)
+          {
+            $this->assertInstanceOf(
+              KKPA\Clients\KKPASlotPlugApiClient::class,
+              $slot
+            );
+            $alias = $slot->getSysInfo()['deviceId'];
+            $this->assertStringStartsWith($deviceId,$alias,"Slot ID $alias does not include $deviceId");
+            $this->assertGreaterThan(strlen($deviceId),strlen($alias));
+          }
+
         } else {
           $this->assertFalse($device->has_children());
         }
