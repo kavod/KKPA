@@ -592,58 +592,23 @@ class KKPATestPrototype extends TestCase
 
           $slots_id = $device->getAllIds();
           $this->assertIsArray($slots_id);
-          // foreach($slots_id as $slot)
-          // {
-          //   // Switch On/Off
-          //   $device->switchSlotOff(array($slot));
-          //   sleep(DELAY_BEFORE_STATE);
-          //   $this->assertEquals(
-          //     $device->getSlotState($slot),
-          //     0
-          //   );
-          //   $device->switchSlotOn(array($slot));
-          //   sleep(DELAY_BEFORE_STATE);
-          //   $this->assertEquals(
-          //     $device->getSlotState($slot),
-          //     1
-          //   );
-          //   $device->switchSlotOff(array($slot));
-          //   sleep(DELAY_BEFORE_STATE);
-          //   $this->assertEquals(
-          //     $device->getSlotState($slot),
-          //     0
-          //   );
-          //
-          //   // ENE
-          //   $realTime = $device->getSlotRealTime($slot);
-          //   $this->assertIsFloat($realTime['power']);
-          //   $this->assertIsFloat($realTime['voltage']);
-          //   $this->assertIsFloat($realTime['current']);
-          //   $this->assertIsFloat($realTime['total']);
-          //
-          //   // // LED
-          //   // $device->setLedOff();
-          //   // sleep(DELAY_BEFORE_STATE);
-          //   // $this->assertEquals(
-          //   //   $device->getLedState(),
-          //   //   0
-          //   // );
-          //   // $device->setLedOn();
-          //   // sleep(DELAY_BEFORE_STATE);
-          //   // $this->assertEquals(
-          //   //   $device->getLedState(),
-          //   //   1
-          //   // );
-          //   // $device->setLedOff();
-          //   // sleep(DELAY_BEFORE_STATE);
-          //   // $this->assertEquals(
-          //   //   $device->getLedState(),
-          //   //   0
-          //   // );
-          // }
         } else {
           $this->assertFalse($device->has_children());
         }
+      }
+    }
+
+    public function testGetDevicesList():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = $client->getDeviceList();
+      $this->assertIsArray($deviceList);
+      foreach($deviceList as $device)
+      {
+        $this->assertInstanceOf(
+          KKPA\Clients\KKPADeviceApiClient::class,
+          $device
+        );
       }
     }
 }

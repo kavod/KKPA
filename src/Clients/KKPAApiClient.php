@@ -399,10 +399,15 @@
               $conf['cloud'] = false;
             }
             // HS300 ?
-            if (substr(self::readModel($device),0,5)=='HS300')
+            //if (substr(self::readModel($device),0,5)=='HS300')
+            if (array_key_exists('children',$device))
             {
               //break;
               $devices[] = new KKPAMultiPlugApiClient($conf);
+              foreach($device['children'] as $child)
+              {
+                $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
+              }
               break;
             } else
             {
