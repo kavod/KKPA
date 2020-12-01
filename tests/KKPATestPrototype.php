@@ -60,18 +60,13 @@ class KKPATestPrototype extends TestCase
             KKPA\Clients\KKPADeviceApiClient::class,
             $device
         );
-    }
-
-    public function testGetDeviceList(): void
-    {
-      $client = $this::instance(self::$conf);
       //$deviceList = $client->getDeviceList();
       $deviceList = array_merge(array(),self::$ref_deviceList);
       $found = array();
       $this->assertIsArray($deviceList);
       foreach($deviceList as $device)
       {
-        $this->assertFalse(in_array($device->getVariable('deviceId',''),$found));
+        //$this->assertFalse(in_array($device->getVariable('deviceId',''),$found)); //since MultiSlot
         $found[] = $device->getVariable('deviceId','');
         switch($device->getType())
         {
@@ -427,7 +422,7 @@ class KKPATestPrototype extends TestCase
               $this->assertFalse($device->is_featured('DIM'));
               $this->assertFalse($device->is_featured('COL'));
               $this->assertFalse($device->is_featured('TMP'));
-              $this->assertTrue($device->is_featured('MUL'));
+              //$this->assertTrue($device->is_featured('MUL'));
               break;
             case 'LB130':
               $this->assertTrue($device->is_featured('COL'));
@@ -527,6 +522,19 @@ class KKPATestPrototype extends TestCase
             $device['deviceId'],
             $dev->getVariable('deviceId','')
           );
+          if (array_key_exists('children',$device))
+          {
+            foreach($device['children'] as $child)
+            {
+              $dev = self::$ref_client->getDeviceById($device['deviceId'],$child);
+              // print_r($dev);
+              $this->assertInstanceOf(KKPA\Clients\KKPASlotPlugApiClient::class,$dev);
+              $this->assertEquals(
+                $child,
+                $dev->getVariable('child_id','')
+              );
+            }
+          }
         }
       }
     }
@@ -593,57 +601,46 @@ class KKPATestPrototype extends TestCase
         // print_r($device->is_featured('MUL'));
         if ($device->is_featured('MUL'))
         {
+          $this->assertTrue($device->has_children());
+          $deviceId = $device->getSysInfo('deviceId')['deviceId'];
+
           $slots_id = $device->getAllIds();
           $this->assertIsArray($slots_id);
-          foreach($slots_id as $slot)
+
+          $slots_obj = $device->getChildren();
+          $this->assertIsArray($slots_obj);
+          foreach($slots_obj as $slot)
           {
-            // Switch On/Off
-            $device->switchSlotOff(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              0
+            $this->assertInstanceOf(
+              KKPA\Clients\KKPASlotPlugApiClient::class,
+              $slot
             );
-            $device->switchSlotOn(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              1
-            );
-            $device->switchSlotOff(array($slot));
-            sleep(DELAY_BEFORE_STATE);
-            $this->assertEquals(
-              $device->getSlotState($slot),
-              0
-            );
-
-            // ENE
-            $realTime = $device->getSlotRealTime($slot);
-            $this->assertIsFloat($realTime['power']);
-            $this->assertIsFloat($realTime['voltage']);
-            $this->assertIsFloat($realTime['current']);
-            $this->assertIsFloat($realTime['total']);
-
-            // // LED
-            // $device->setLedOff();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   0
-            // );
-            // $device->setLedOn();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   1
-            // );
-            // $device->setLedOff();
-            // sleep(DELAY_BEFORE_STATE);
-            // $this->assertEquals(
-            //   $device->getLedState(),
-            //   0
-            // );
+            $child_id = $slot->getVariable('child_id');
+            $this->assertStringStartsWith($deviceId,$child_id,"Slot ID $child_id does not include $deviceId");
+            $this->assertGreaterThan(strlen($deviceId),strlen($child_id));
           }
+
+        } else {
+          $this->assertFalse($device->has_children());
+        }
+      }
+    }
+
+    public function testGetDevicesList():void
+    {
+      $client = $this::instance(self::$conf);
+      $deviceList = $client->getDeviceList();
+      $this->assertIsArray($deviceList);
+      foreach($deviceList as $device)
+      {
+        $this->assertInstanceOf(
+          KKPA\Clients\KKPADeviceApiClient::class,
+          $device
+        );
+        $this->assertIsArray($device->getSysInfo());
+        if ($device->is_featured('ENE'))
+        {
+          $this->assertIsArray($device->getRealTime());
         }
       }
     }

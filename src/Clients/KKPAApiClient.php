@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.1.3");
+  define('KKPA_VERSION',"2.3");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -142,8 +142,10 @@
         return array_pop($path);
     }
 
-    public function getDeviceByIp($ip,$port=9999)
+    public function getDeviceByIp($ip,$port=9999,$child_id=null)
     {
+      if ($child_id=='')
+        $child_id = null;
       if ($this->getVariable('cloud',1))
         throw new KKPAClientException(994,"getDeviceByIp cannot be used in Cloud mode","Error");
       $conf = array(
@@ -157,9 +159,17 @@
       switch($device->getType())
       {
         case 'IOT.SMARTPLUGSWITCH':
-          if ($device->getModel()=='HS300')
-            return new KKPAMultiPlugApiClient($conf);
-          return new KKPAPlugApiClient($conf);
+          if ($device->has_children())
+          {
+            if (is_null($child_id))
+            {
+              return new KKPAMultiPlugApiClient($conf);
+            } else {
+              return new KKPASlotPlugApiClient($conf,$child_id);
+            }
+          } else {
+            return new KKPAPlugApiClient($conf);
+          }
           break;
         case 'IOT.SMARTBULB':
           return new KKPABulbApiClient($conf);
@@ -167,24 +177,45 @@
       }
     }
 
-    public function getDeviceById($deviceId)
+    public function getDeviceById($deviceId,$child_id=null)
     {
+      if ($child_id=='')
+        $child_id = null;
       if ($this->getVariable('cloud',1)==1)
       {
-        $conf = array_merge(array(),$this->conf);
-        $conf['deviceId'] = $deviceId;
-        $device = new KKPADeviceApiClient($conf);
-        switch($device->getType())
+        // $conf = array_merge(array(),$this->conf);
+        // $conf['deviceId'] = $deviceId;
+        // $device = new KKPADeviceApiClient($conf);
+        // switch($device->getType())
+        // {
+        //   case 'IOT.SMARTPLUGSWITCH':
+        //     if ($device->has_children())
+        //     {
+        //       if (is_null($child_id))
+        //       {
+        //         return new KKPAMultiPlugApiClient($conf);
+        //       } else {
+        //         return new KKPASlotPlugApiClient($conf,$child_id);
+        //       }
+        //     } else {
+        //       return new KKPAPlugApiClient($conf);
+        //     }
+        //     break;
+        //   case 'IOT.SMARTBULB':
+        //     return new KKPABulbApiClient($conf);
+        //     break;
+        // }
+        $deviceList = $this->getDeviceList();
+        foreach($deviceList as $device)
         {
-          case 'IOT.SMARTPLUGSWITCH':
-            if ($device->getModel()=='HS300')
-              return new KKPAMultiPlugApiClient($conf);
-            return new KKPAPlugApiClient($conf);
-            break;
-          case 'IOT.SMARTBULB':
-            return new KKPABulbApiClient($conf);
-            break;
+          if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
+            return $device;
         }
+        throw new KKPAClientException(
+          KKPA_NOT_BINDED,
+          "Device $deviceId ($child_id) not bind to account",
+          "Error"
+        );
       } else
       {
         for($attempt=0;$attempt<KKPA_MAX_ATTEMPTS;$attempt++)
@@ -192,14 +223,14 @@
           $deviceList = $this->getDeviceList();
           foreach($deviceList as $device)
           {
-            if ($device->getVariable('deviceId','')==$deviceId)
+            if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
               return $device;
           }
           sleep(0.5);
         }
         throw new KKPAClientException(
           KKPA_NOT_FOUND,
-          "Device $deviceId not found on network (".KKPA_MAX_ATTEMPTS." attempts)",
+          "Device $deviceId ($child_id) not found on network (".KKPA_MAX_ATTEMPTS." attempts)",
           "Error"
         );
       }
@@ -383,10 +414,15 @@
               $conf['cloud'] = false;
             }
             // HS300 ?
-            if (substr(self::readModel($device),0,5)=='HS300')
+            //if (substr(self::readModel($device),0,5)=='HS300')
+            if (array_key_exists('children',$device))
             {
               //break;
               $devices[] = new KKPAMultiPlugApiClient($conf);
+              foreach($device['children'] as $child)
+              {
+                $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
+              }
               break;
             } else
             {
@@ -852,6 +888,13 @@
       return array(
           "deviceList" => $result
       );
+    }
+
+    protected static function translate_single_id($ids)
+    {
+      if (!is_array($ids))
+        return array($ids);
+      return $ids;
     }
 }
  ?>

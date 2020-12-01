@@ -14,8 +14,10 @@ use KKPA\Common\KKPARestErrorCode;
 class KKPADeviceApiClient extends KKPAApiClient
 {
   protected $deviceId;
-  public function __construct($config = array())
+  protected $child_id;
+  public function __construct($conf = array(),$child_id=null)
   {
+    $config = array_merge(array(),$conf);
     if($this->cloud && !array_key_exists('deviceId',$config))
     {
       throw new KKPADeviceException("DeviceId required");
@@ -23,6 +25,7 @@ class KKPADeviceApiClient extends KKPAApiClient
     parent::__construct($config);
     if (array_key_exists('deviceId',$config))
       $this->deviceId = $config['deviceId'];
+    $this->child_id = $child_id;
     $this->getSysInfo();
   }
 
@@ -267,6 +270,39 @@ class KKPADeviceApiClient extends KKPAApiClient
   public function getLedState()
   {
 
+  }
+
+  public function getAllIds()
+  {
+    $result = array();
+    $children = $this->getVariable('children',array());
+    foreach($children as $child)
+    {
+      $result[] = $child['id'];
+    }
+    if (count($result)>1)
+      return $result;
+    else {
+      return null;
+    }
+  }
+
+  // Network functions (Cloud & Local)
+  protected function send($request_arr,$child_ids=null)
+  {
+    $child_ids = (is_null($child_ids)) ? $this->child_id : $child_ids;
+    if (!is_null($child_ids))
+    {
+      $context_arr = array("child_ids" => self::translate_single_id($child_ids), "source" => "Kasa_Android");
+      $request_arr['context'] = $context_arr;
+      //$context_json = json_encode($request_arr);
+    }
+    return parent::send($request_arr);
+  }
+
+  public function has_children()
+  {
+    return is_array($this->getVariable('children',0));
   }
 }
 ?>

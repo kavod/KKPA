@@ -3,22 +3,40 @@ namespace KKPA\Clients;
 
 class KKPAPlugApiClient extends KKPADeviceApiClient
 {
+  // public function setRelayState($state)
+  // {
+  //   $state = boolval($state);
+  //   if ($state) $state = 1; else $state = 0;
+  //   $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
+  //   $this->send($request_arr);
+  // }
+  //
   public function setRelayState($state)
   {
+    $ids = (is_null($this->child_id)) ? $this->getAllIds() : array($this->child_id);
     $state = boolval($state);
     if ($state) $state = 1; else $state = 0;
     $request_arr = array("system" => array("set_relay_state" => array("state" => $state)));
-    $this->send($request_arr);
+    if (is_null($ids))
+    {
+      $this->send($request_arr,null);
+    } else {
+      foreach($ids as $id) {
+        $this->send($request_arr,array($id));
+      }
+    }
   }
 
   public function switchOn()
   {
-    $this->setRelayState(1);
+    $ids = (is_null($this->child_id)) ? $this->getAllIds() : array($this->child_id);
+    $this->setRelayState(1,$ids);
   }
 
   public function switchOff()
   {
-    $this->setRelayState(0);
+    $ids = (is_null($this->child_id)) ? $this->getAllIds() : array($this->child_id);
+    $this->setRelayState(0,$ids);
   }
 
   public function getState()
