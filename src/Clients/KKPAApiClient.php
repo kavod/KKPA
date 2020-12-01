@@ -144,6 +144,8 @@
 
     public function getDeviceByIp($ip,$port=9999,$child_id=null)
     {
+      if ($child_id=='')
+        $child_id = null;
       if ($this->getVariable('cloud',1))
         throw new KKPAClientException(994,"getDeviceByIp cannot be used in Cloud mode","Error");
       $conf = array(
@@ -177,6 +179,8 @@
 
     public function getDeviceById($deviceId,$child_id=null)
     {
+      if ($child_id=='')
+        $child_id = null;
       if ($this->getVariable('cloud',1)==1)
       {
         // $conf = array_merge(array(),$this->conf);
