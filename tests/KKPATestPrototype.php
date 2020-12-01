@@ -522,6 +522,19 @@ class KKPATestPrototype extends TestCase
             $device['deviceId'],
             $dev->getVariable('deviceId','')
           );
+          if (array_key_exists('children',$device))
+          {
+            foreach($device['children'] as $child)
+            {
+              $dev = self::$ref_client->getDeviceById($device['deviceId'],$child);
+              // print_r($dev);
+              $this->assertInstanceOf(KKPA\Clients\KKPASlotPlugApiClient::class,$dev);
+              $this->assertEquals(
+                $child,
+                $dev->getVariable('child_id','')
+              );
+            }
+          }
         }
       }
     }
@@ -602,9 +615,9 @@ class KKPATestPrototype extends TestCase
               KKPA\Clients\KKPASlotPlugApiClient::class,
               $slot
             );
-            $alias = $slot->getSysInfo()['deviceId'];
-            $this->assertStringStartsWith($deviceId,$alias,"Slot ID $alias does not include $deviceId");
-            $this->assertGreaterThan(strlen($deviceId),strlen($alias));
+            $child_id = $slot->getVariable('child_id');
+            $this->assertStringStartsWith($deviceId,$child_id,"Slot ID $child_id does not include $deviceId");
+            $this->assertGreaterThan(strlen($deviceId),strlen($child_id));
           }
 
         } else {

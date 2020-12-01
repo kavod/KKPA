@@ -271,7 +271,7 @@ class KKPADeviceApiClient extends KKPAApiClient
   {
 
   }
-  
+
   public function getAllIds()
   {
     $result = array();

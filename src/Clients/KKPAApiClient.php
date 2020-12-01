@@ -179,28 +179,39 @@
     {
       if ($this->getVariable('cloud',1)==1)
       {
-        $conf = array_merge(array(),$this->conf);
-        $conf['deviceId'] = $deviceId;
-        $device = new KKPADeviceApiClient($conf);
-        switch($device->getType())
+        // $conf = array_merge(array(),$this->conf);
+        // $conf['deviceId'] = $deviceId;
+        // $device = new KKPADeviceApiClient($conf);
+        // switch($device->getType())
+        // {
+        //   case 'IOT.SMARTPLUGSWITCH':
+        //     if ($device->has_children())
+        //     {
+        //       if (is_null($child_id))
+        //       {
+        //         return new KKPAMultiPlugApiClient($conf);
+        //       } else {
+        //         return new KKPASlotPlugApiClient($conf,$child_id);
+        //       }
+        //     } else {
+        //       return new KKPAPlugApiClient($conf);
+        //     }
+        //     break;
+        //   case 'IOT.SMARTBULB':
+        //     return new KKPABulbApiClient($conf);
+        //     break;
+        // }
+        $deviceList = $this->getDeviceList();
+        foreach($deviceList as $device)
         {
-          case 'IOT.SMARTPLUGSWITCH':
-            if ($device->has_children())
-            {
-              if (is_null($child_id))
-              {
-                return new KKPAMultiPlugApiClient($conf);
-              } else {
-                return new KKPASlotPlugApiClient($conf,$child_id);
-              }
-            } else {
-              return new KKPAPlugApiClient($conf);
-            }
-            break;
-          case 'IOT.SMARTBULB':
-            return new KKPABulbApiClient($conf);
-            break;
+          if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
+            return $device;
         }
+        throw new KKPAClientException(
+          KKPA_NOT_BINDED,
+          "Device $deviceId ($child_id) not bind to account",
+          "Error"
+        );
       } else
       {
         for($attempt=0;$attempt<KKPA_MAX_ATTEMPTS;$attempt++)
@@ -208,14 +219,14 @@
           $deviceList = $this->getDeviceList();
           foreach($deviceList as $device)
           {
-            if ($device->getVariable('deviceId','')==$deviceId)
+            if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
               return $device;
           }
           sleep(0.5);
         }
         throw new KKPAClientException(
           KKPA_NOT_FOUND,
-          "Device $deviceId not found on network (".KKPA_MAX_ATTEMPTS." attempts)",
+          "Device $deviceId ($child_id) not found on network (".KKPA_MAX_ATTEMPTS." attempts)",
           "Error"
         );
       }

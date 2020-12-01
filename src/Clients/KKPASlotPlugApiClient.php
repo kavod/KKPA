@@ -36,6 +36,7 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
     }
     if (!$found)
       throw new KKPAClientException(KKPA_CHILD_ID_NOT_FOUND,"Child id $child_id not found for ".$conf['deviceId'],"error");
+    $this->setVariable('child_id',$child_id);
     $this->child_id = $child_id;
     //$this->child_id = (strpos($child_id,$conf['id'])===0) ? $child_id : $conf['id'].$child_id;
 
@@ -55,8 +56,6 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
       $info = array($info,'children');
 
     $sysinfo = parent::getSysInfo($info);
-    if (array_key_exists('deviceId',$sysinfo))
-      $sysinfo['deviceId'] = $this->child_id;
     if (array_key_exists('children',$sysinfo))
     {
       foreach($sysinfo['children'] as $child)
@@ -64,6 +63,7 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
         if ($child['id']==$this->child_id)
         {
           $sysinfo['alias'] = $child['alias'];
+          $this->setVariable('alias',$sysinfo['alias']);
           break;
         }
       }
