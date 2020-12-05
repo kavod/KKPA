@@ -350,7 +350,7 @@
     }
 
     public function toString() {
-      return print_r($this->toArray(),true);
+      return $this->anonymizeUserPass(print_r($this->toArray(),true));
     }
 
     // Network functions (Cloud & Local)
@@ -558,6 +558,7 @@
                 {
                     case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
                     case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
+                    case KKPARestErrorCode::ACCOUNT_LOGIN_IN_OTHER_PLACES:
                         throw $ex;
                         return $this->makeOAuth2Request($params, false);
                     break;

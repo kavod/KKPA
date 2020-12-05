@@ -4,7 +4,6 @@ class KKPARestErrorCode
 {
     const ACCESS_TOKEN_MISSING = 1;
     const INVALID_ACCESS_TOKEN = 2;
-    const ACCESS_TOKEN_EXPIRED = -20651;
     const INCONSISTENCY_ERROR = 4;
     const APPLICATION_DEACTIVATED = 5;
     const INVALID_EMAIL = 6;
@@ -41,5 +40,7 @@ class KKPARestErrorCode
     const CAMERA_NO_SPACE_AVAILABLE = 37;
     const PASSWORD_COMPLEXITY_TOO_LOW = 38;
     const TOO_MANY_CONNECTION_FAILURE = 39;
+    const ACCESS_TOKEN_EXPIRED = -20651;
+    const ACCOUNT_LOGIN_IN_OTHER_PLACES = -20675;
 }
 ?>
