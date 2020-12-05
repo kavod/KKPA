@@ -260,11 +260,15 @@ class KKPADeviceApiClient extends KKPAApiClient
     return $sysinfo;
   }
 
-  public function toString()
+  // public function toString()
+  // {
+  //   $array = self::toArray();
+  //   //$array['deviceId'] = $this->deviceId;
+  //   return $this->anonymizeUserPass(print_r($array,true));
+  // }
+  public function toArray()
   {
-    $array = parent::toArray();
-    $array['deviceId'] = $this->deviceId;
-    return print_r($array,true);
+    return $this->conf;
   }
 
   public function getLedState()
