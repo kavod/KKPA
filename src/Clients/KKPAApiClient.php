@@ -369,7 +369,8 @@
         {
             throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
         }
-        $result = $this->makeRequest($requestData);
+        //$result = $this->makeRequest($requestData);
+        $result = $this->makeOAuth2Request($requestData);
         $result = self::extractCloudResponse($result);
       } else
       {
@@ -539,7 +540,8 @@
     {
         try
         {
-            $token = $this->getAccessToken();
+          $force = !$reget_token;
+          $token = $this->getAccessToken($force);
         }
         catch(KKPAApiErrorType $ex)
         {
@@ -559,7 +561,6 @@
                     case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
                     case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
                     case KKPARestErrorCode::ACCOUNT_LOGIN_IN_OTHER_PLACES:
-                        throw $ex;
                         return $this->makeOAuth2Request($params, false);
                     break;
                     default:
@@ -681,10 +682,10 @@
     *  @throw
     * A KKPAClientException if unable to retrieve an access_token
     */
-    public function getAccessToken()
+    public function getAccessToken($force=false)
     {
         //find best way to retrieve access_token
-        if($this->token)
+        if(!$force && $this->token)
         {
             return array("token" => $this->token);
         }
