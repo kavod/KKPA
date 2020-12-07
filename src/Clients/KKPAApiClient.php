@@ -427,7 +427,17 @@
               break;
             } else
             {
-              $devices[] = new KKPAPlugApiClient($conf);
+              // $devices[] = new KKPAPlugApiClient($conf);
+              $device = new KKPAPlugApiClient($conf);
+              $device->getSysInfo();
+              if ($device->has_children())
+              {
+                $devices[] = new KKPAMultiPlugApiClient($conf);
+                foreach($device->getChildren() as $child)
+                  $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
+              } else {
+                $devices[] = $device;
+              }
               break;
             }
             break;
