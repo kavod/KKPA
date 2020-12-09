@@ -631,6 +631,7 @@ class KKPATestPrototype extends TestCase
       $client = $this::instance(self::$conf);
       $deviceList = $client->getDeviceList();
       $this->assertIsArray($deviceList);
+      $this->assertGreaterThan(0,count($deviceList));
       foreach($deviceList as $device)
       {
         $this->assertInstanceOf(

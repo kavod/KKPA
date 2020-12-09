@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.3.4");
+  define('KKPA_VERSION',"2.3.5");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -429,10 +429,12 @@
             {
               // $devices[] = new KKPAPlugApiClient($conf);
               $device = new KKPAPlugApiClient($conf);
-              $device->getSysInfo();
+              $sysinfo = $device->getSysInfo();
               if ($device->has_children())
               {
-                $devices[] = new KKPAMultiPlugApiClient($conf);
+                unset($device);
+                $device = new KKPAMultiPlugApiClient($conf);
+                $devices[] = $device;
                 foreach($device->getChildren() as $child)
                   $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
               } else {
