@@ -33,6 +33,7 @@
     protected $uuid = "";
     protected $cloud = false;
     protected $local_ip = '';
+    protected $local_port = '';
 
     const REQ_SYSINFO = array(
       "system"=>array(
@@ -428,17 +429,17 @@
             } else
             {
               // $devices[] = new KKPAPlugApiClient($conf);
-              $device = new KKPAPlugApiClient($conf);
-              $sysinfo = $device->getSysInfo();
-              if ($device->has_children())
+              $plug_device = new KKPAPlugApiClient($conf);
+              $sysinfo = $plug_device->getSysInfo();
+              if ($plug_device->has_children())
               {
-                unset($device);
-                $device = new KKPAMultiPlugApiClient($conf);
-                $devices[] = $device;
-                foreach($device->getChildren() as $child)
+                unset($plug_device);
+                $plug_device = new KKPAMultiPlugApiClient($conf);
+                $devices[] = $plug_device;
+                foreach($plug_device->getChildren() as $child)
                   $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
               } else {
-                $devices[] = $device;
+                $devices[] = $plug_device;
               }
               break;
             }
