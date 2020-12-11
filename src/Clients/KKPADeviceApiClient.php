@@ -23,9 +23,12 @@ class KKPADeviceApiClient extends KKPAApiClient
       throw new KKPADeviceException("DeviceId required");
     }
     parent::__construct($config);
-    if (array_key_exists('deviceId',$config))
+    if (array_key_exists('deviceId',$config)){
       $this->deviceId = $config['deviceId'];
+      $this->setVariable('deviceId',$this->deviceId);
+    }
     $this->child_id = $child_id;
+    $this->setVariable('child_id',$this->child_id);
     $this->getSysInfo();
   }
 

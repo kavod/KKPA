@@ -400,7 +400,7 @@
         $result = self::makeBroadcastRequest();
       }
       $devices = array();
-      $conf = $this->conf;
+      $conf = array_merge(array(),$this->conf);
       foreach($result['deviceList'] as $device)
       {
         switch(self::readType($device))
