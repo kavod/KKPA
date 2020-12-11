@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.3.5");
+  define('KKPA_VERSION',"2.3.6");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
