@@ -7,5 +7,6 @@
   {
     $username = "";
     $password = "";
+    $base_uri = null;
   }
 ?>

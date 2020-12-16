@@ -59,7 +59,9 @@ class KKPAMultiPlugApiClient extends KKPAPlugApiClient
           "token" => $this->token,
           "uuid" => $this->uuid,
           "username" => $this->getVariable('username',''),
-          "password" => $this->getVariable('password','')
+          "password" => $this->getVariable('password',''),
+          "base_uri" => $this->getVariable('base_uri',TPLINK_BASE_URI),
+          "deviceId" => $this->getVariable('deviceId','')
         );
         $children = array();
         foreach($this->getVariable('children',array()) as $child)

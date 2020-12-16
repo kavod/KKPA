@@ -15,13 +15,14 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
       self::$conf = array(
         "username" => $username,
         "password" => $password,
-        "cloud"    => true
+        "cloud"    => true,
+        "base_uri" => $base_uri
       );
       parent::setUpBeforeClass();
 
       foreach(self::$ref_testDeviceList as $device)
       {
-        if (!$device['virtual'])
+        // if (!$device['virtual'])
           self::$ref_deviceList[] = self::$ref_client->getDeviceById($device['deviceId']);
       }
     }

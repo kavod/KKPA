@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.3.6");
+  define('KKPA_VERSION',"2.3.7");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -77,6 +77,11 @@
     public function __construct($conf = array())
     {
         $config = array_merge(array(),$conf);
+        if (array_key_exists('base_uri',$config) && !is_null($config['base_uri']))
+          $this->base_uri = $config['base_uri'];
+        else {
+          $this->base_uri = TPLINK_BASE_URI;
+        }
         if(array_key_exists('cloud',$config))
         {
           $this->cloud = boolval($config["cloud"]);
@@ -97,7 +102,7 @@
           } else {
               $this->uuid = self::guidv4();
           }
-          $this->setVariable('base_uri',TPLINK_BASE_URI);
+          $this->setVariable('base_uri',$this->base_uri);
 
           if($this->getVariable("code") == null && isset($_GET["code"]))
           {
@@ -154,7 +159,8 @@
         "local_ip" => $ip,
         "local_port" => $port,
         "username" => $this->getVariable('username',''),
-        "password" => $this->getVariable('password','')
+        "password" => $this->getVariable('password',''),
+        "base_uri" => $this->getVariable('base_uri',TPLINK_BASE_URI)
       );
       $device = new KKPADeviceApiClient($conf);
       switch($device->getType())
@@ -184,28 +190,6 @@
         $child_id = null;
       if ($this->getVariable('cloud',1)==1)
       {
-        // $conf = array_merge(array(),$this->conf);
-        // $conf['deviceId'] = $deviceId;
-        // $device = new KKPADeviceApiClient($conf);
-        // switch($device->getType())
-        // {
-        //   case 'IOT.SMARTPLUGSWITCH':
-        //     if ($device->has_children())
-        //     {
-        //       if (is_null($child_id))
-        //       {
-        //         return new KKPAMultiPlugApiClient($conf);
-        //       } else {
-        //         return new KKPASlotPlugApiClient($conf,$child_id);
-        //       }
-        //     } else {
-        //       return new KKPAPlugApiClient($conf);
-        //     }
-        //     break;
-        //   case 'IOT.SMARTBULB':
-        //     return new KKPABulbApiClient($conf);
-        //     break;
-        // }
         $deviceList = $this->getDeviceList();
         foreach($deviceList as $device)
         {
@@ -338,7 +322,7 @@
     public function toArray() {
       return array(
         'conf' => array(
-          'base_uri' => TPLINK_BASE_URI,
+          'base_uri' => $this->base_uri,
           'username' => ($this->getVariable('username','')!='') ? '*****' : '',
           'password' => ($this->getVariable('password','')!='') ? '*****' : '',
           'deviceId' => $this->getVariable('deviceId',''),
@@ -437,7 +421,7 @@
                 $plug_device = new KKPAMultiPlugApiClient($conf);
                 $devices[] = $plug_device;
                 foreach($plug_device->getChildren() as $child)
-                  $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
+                  $devices[] = $child;
               } else {
                 $devices[] = $plug_device;
               }
@@ -605,7 +589,7 @@
         {
             $opts[CURLOPT_POSTFIELDS] = $params;
         }
-        $opts[CURLOPT_URL] = TPLINK_BASE_URI . (
+        $opts[CURLOPT_URL] = $this->base_uri . (
           (isset($this->token)) ? '?token=' . $this->token : ''
         );
         // Disable the 'Expect: 100-continue' behaviour. This causes CURL to wait

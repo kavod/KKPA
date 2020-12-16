@@ -49,7 +49,7 @@ class KKPADeviceApiClient extends KKPAApiClient
 
   public function getSysInfo($info=NULL)
   {
-    if (isset($info))
+    if (!is_null($info))
     {
       if(is_string($info))
         $info = array($info);
@@ -98,7 +98,7 @@ class KKPADeviceApiClient extends KKPAApiClient
       }
     }
 
-    if (!isset($info))
+    if (is_null($info))
     {
       return $system;
     } else
