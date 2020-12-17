@@ -73,10 +73,6 @@ class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
 
   public function is_featured($feature)
   {
-    if ($feature=='TIM')
-      return true;
-    if ($feature=='ENE')
-      return true;
     if ($feature=='LED')
       return false;
     if ($feature=='MUL')
