@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.3.7");
+  define('KKPA_VERSION',"2.3.8");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -399,11 +399,8 @@
               $conf['local_port'] = $device['local_port'];
               $conf['cloud'] = false;
             }
-            // HS300 ?
-            //if (substr(self::readModel($device),0,5)=='HS300')
             if (array_key_exists('children',$device))
             {
-              //break;
               $devices[] = new KKPAMultiPlugApiClient($conf);
               foreach($device['children'] as $child)
               {
@@ -412,13 +409,13 @@
               break;
             } else
             {
-              // $devices[] = new KKPAPlugApiClient($conf);
               $plug_device = new KKPAPlugApiClient($conf);
               $sysinfo = $plug_device->getSysInfo();
               if ($plug_device->has_children())
               {
                 unset($plug_device);
                 $plug_device = new KKPAMultiPlugApiClient($conf);
+                $sysinfo = $plug_device->getSysInfo();
                 $devices[] = $plug_device;
                 foreach($plug_device->getChildren() as $child)
                   $devices[] = $child;
