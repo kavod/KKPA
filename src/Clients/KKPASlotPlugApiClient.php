@@ -13,11 +13,11 @@ use KKPA\Common\KKPARestErrorCode;
 
 class KKPASlotPlugApiClient extends KKPAMultiPlugApiClient
 {
-  public function __construct($config = array(),$child_id=null)
+  public function __construct($config = array(),$child_id=null,$client=null)
   {
     if (is_null($child_id))
       throw new KKPAClientException(KKPA_CHILD_ID_MANDATORY,"Child id mandatory","error");
-    parent::__construct($config,null);
+    parent::__construct($config,null,$client);
     $conf = parent::getSysInfo();
     $found = false;
     foreach($conf['children'] as $child)

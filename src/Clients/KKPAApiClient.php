@@ -16,7 +16,7 @@
   use KKPA\Common\KKPARestErrorCode;
 
   define('TPLINK_BASE_URI', "https://wap.tplinkcloud.com/");
-  define('KKPA_VERSION',"2.3.9");
+  define('KKPA_VERSION',"2.3.10");
   define('KKPA_LOCAL_TIMEOUT',2);
   define('KKPA_BROADCAST_IP','255.255.255.255');
   define('KKPA_DEFAULT_PORT',9999);
@@ -26,6 +26,7 @@
   {
     public $conf = array();
     protected $token;
+    protected static $last_uri = "";
     protected static $last_request = "";
     protected static $last_result = "";
     protected static $last_errno = 0;
@@ -34,6 +35,7 @@
     protected $cloud = false;
     protected $local_ip = '';
     protected $local_port = '';
+    protected $client;
 
     const REQ_SYSINFO = array(
       "system"=>array(
@@ -186,13 +188,15 @@
 
     public function getDeviceById($deviceId,$child_id=null)
     {
+      $client = (is_null($this->client)) ? $this : $this->client;
       if ($child_id=='')
         $child_id = null;
       if ($this->getVariable('cloud',1)==1)
       {
-        $deviceList = $this->getDeviceList();
+        $deviceList = $client->getDeviceList();
         foreach($deviceList as $device)
         {
+          // print_r(array($device->getVariable('deviceId',''),$deviceId,$device->getVariable('child_id',null),$child_id));
           if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
             return $device;
         }
@@ -205,7 +209,7 @@
       {
         for($attempt=0;$attempt<KKPA_MAX_ATTEMPTS;$attempt++)
         {
-          $deviceList = $this->getDeviceList();
+          $deviceList = $client->getDeviceList();
           foreach($deviceList as $device)
           {
             if ($device->getVariable('deviceId','')==$deviceId && $device->getVariable('child_id',null)==$child_id)
@@ -315,7 +319,8 @@
         "deviceId" => self::$last_deviceId,
         "request" => self::$last_request,
         "result" => self::$last_result,
-        "errno" => self::$last_errno
+        "errno" => self::$last_errno,
+        "last_uri" => self::$last_uri
       );
     }
 
@@ -339,24 +344,36 @@
     }
 
     // Network functions (Cloud & Local)
-    protected function send($request_arr)
+    protected function send($request_arr,$deviceId=null)
     {
+      $client = (is_null($this->client)) ? $this : $this->client;
       $cloud = $this->getVariable('cloud',1);
-      $deviceId = $this->getVariable('deviceId',null);
+      $deviceId = $this->getVariable('deviceId',$deviceId);
       $requestData = $this->makeRequestData($request_arr);
       if ($cloud)
       {
         try
         {
-            $token = $this->getAccessToken();
+            $token = $client->getAccessToken();
         }
         catch(KKPAApiErrorType $ex)
         {
             throw new KKPANotLoggedErrorType($ex->getCode(), $ex->getMessage());
         }
-        //$result = $this->makeRequest($requestData);
-        $result = $this->makeOAuth2Request($requestData);
-        $result = self::extractCloudResponse($result);
+        $result = $client->makeOAuth2Request($requestData);
+        try {
+          $result = self::extractCloudResponse($result);
+        } catch (KKPADeviceException $e)
+        {
+          if ($e->getCode() == KKPA_LOGIN_OTHER_PLACE)
+          {
+            $client->getAccessToken($force=true);
+            $result = $client->makeOAuth2Request($requestData);
+            $result = self::extractCloudResponse($result);
+          } else {
+            throw $e;
+          }
+        }
       } else
       {
         $result = $this->makeLocalRequest($requestData);
@@ -368,11 +385,12 @@
 
     public function getDeviceList()
     {
-      if ($this->cloud)
+      $client = (is_null($this->client)) ? $this : $this->client;
+      if ($client->cloud)
       {
         $json_request = json_encode(self::REQ_DEVICELIST);
         $this->setLastRequest($json_request);
-        $result = $this->makeOAuth2Request($json_request);
+        $result = $client->makeOAuth2Request($json_request);
         self::checkErrorCode($result);
         if(!array_key_exists('result',$result))
         {
@@ -393,6 +411,9 @@
             $conf["deviceId"] = $device['deviceId'];
             if ($this->cloud)
             {
+              $conf['token'] = $this->token;
+              $conf["username"] = $this->getVariable('username','');
+              $conf["password"] = $this->getVariable('password','');
             } else
             {
               $conf['local_ip'] = $device['local_ip'];
@@ -401,20 +422,20 @@
             }
             if (array_key_exists('children',$device))
             {
-              $devices[] = new KKPAMultiPlugApiClient($conf);
+              $devices[] = new KKPAMultiPlugApiClient($conf,null,$client);
               foreach($device['children'] as $child)
               {
-                $devices[] = new KKPASlotPlugApiClient($conf,$child['id']);
+                $devices[] = new KKPASlotPlugApiClient($conf,$child['id'],$client=$client);
               }
               break;
             } else
             {
-              $plug_device = new KKPAPlugApiClient($conf);
+              $plug_device = new KKPAPlugApiClient($conf,null,$client);
               $sysinfo = $plug_device->getSysInfo();
               if ($plug_device->has_children())
               {
                 unset($plug_device);
-                $plug_device = new KKPAMultiPlugApiClient($conf);
+                $plug_device = new KKPAMultiPlugApiClient($conf,null,$client);
                 $sysinfo = $plug_device->getSysInfo();
                 $devices[] = $plug_device;
                 foreach($plug_device->getChildren() as $child)
@@ -436,7 +457,7 @@
               $conf['local_port'] = $device['local_port'];
               $conf['cloud'] = false;
             }
-            $devices[] = new KKPABulbApiClient($conf);
+            $devices[] = new KKPABulbApiClient($conf,$transition_period=150,$client=$this);
             break;
         }
       }
@@ -484,6 +505,10 @@
       {
           throw new KKPADeviceException($error_code,"Account is not binded to the device","Error");
       }
+      if($error_code == KKPA_LOGIN_OTHER_PLACE) // KKPA_LOGIN_OTHER_PLACE -20675
+      {
+          throw new KKPADeviceException($error_code,"Account login in other places","Error");
+      }
       if($error_code !=0)
       {
           throw new KKPAClientException($error_code,"Error ($error_code)\n$msg\n".print_r(self::debug_last_request(),true),"Error");
@@ -497,7 +522,7 @@
       {
         $deviceId = $this->getVariable('deviceId',null);
         if (is_null($deviceId))
-          throw new KKPAApiErrorType(996,"Missing or incorrect format for deviceId","Error");
+          throw new KKPAApiErrorType(996,"Missing or incorrect format for deviceId: ".$deviceId,"Error");
         $request_json = json_encode(
           array(
             "method"=>"passthrough",
@@ -532,10 +557,11 @@
     */
     protected function makeOAuth2Request($params = array(), $reget_token = true)
     {
+        $client = (is_null($this->client)) ? $this : $this->client;
         try
         {
           $force = !$reget_token;
-          $token = $this->getAccessToken($force);
+          $token = $client->getAccessToken($force);
         }
         catch(KKPAApiErrorType $ex)
         {
@@ -543,7 +569,7 @@
         }
         try
         {
-            $res = $this->makeRequest($params);
+            $res = $client->makeRequest($params);
             return $res;
         }
         catch(KKPAApiErrorType $ex)
@@ -555,13 +581,22 @@
                     case KKPARestErrorCode::INVALID_ACCESS_TOKEN:
                     case KKPARestErrorCode::ACCESS_TOKEN_EXPIRED:
                     case KKPARestErrorCode::ACCOUNT_LOGIN_IN_OTHER_PLACES:
-                        return $this->makeOAuth2Request($params, false);
+                        return $client->makeOAuth2Request($params, false);
                     break;
                     default:
                         throw $ex;
                 }
             }
             else throw $ex;
+        }
+        catch(KKPADeviceException $e)
+        {
+          if ($e->getCode()==KKPA_LOGIN_OTHER_PLACE)
+          {
+            return $client->makeOAuth2Request($params, false);
+          } else {
+            throw $e;
+          }
         }
         return $res;
     }
@@ -580,15 +615,17 @@
     */
     public function makeRequest($params = array())
     {
+        $client = (is_null($this->client)) ? $this : $this->client;
         $ch = curl_init();
         $opts = self::$CURL_OPTS;
         if ($params)
         {
             $opts[CURLOPT_POSTFIELDS] = $params;
         }
-        $opts[CURLOPT_URL] = $this->base_uri . (
-          (isset($this->token)) ? '?token=' . $this->token : ''
+        $opts[CURLOPT_URL] = $client->base_uri . (
+          (isset($client->token)) ? '?token=' . $client->token : ''
         );
+        self::$last_uri = $opts[CURLOPT_URL];
         // Disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
         // for 2 seconds if the server does not support this header.
         if (isset($opts[CURLOPT_HTTPHEADER]))
@@ -607,8 +644,8 @@
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
         $errno = curl_errno($ch);
-        $this->setLastResponse($result,$errno);
-        // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
+        $client->setLastResponse($result,$errno);
+        // print_r($client->debug_last_request());
         if ($errno == 60 || $errno == 77)
         {
             echo "WARNING ! SSL_VERIFICATION has been disabled since ssl error retrieved. Please check your certificate http://curl.haxx.se/docs/sslcerts.html\n";
@@ -657,14 +694,15 @@
     // Cloud - Auth
     private function setTokens($value)
     {
+        $client = (is_null($this->client)) ? $this : $this->client;
         if(!isset($value['error_code']) || $value['error_code'] != 0)
         {
           throw new KKPAClientException($value['error_code'],"Error retrieving token","Error");
         }
         if(isset($value["result"]) && isset($value['result']['token']))
         {
-            $this->token = $value['result']['token'];
-            $this->accountId = $value['result']['accountId'];
+            $client->token = $value['result']['token'];
+            $client->accountId = $value['result']['accountId'];
         }
     }
 
@@ -678,14 +716,15 @@
     */
     public function getAccessToken($force=false)
     {
+        $client = (is_null($this->client)) ? $this : $this->client;
         //find best way to retrieve access_token
-        if(!$force && $this->token)
+        if(!$force && $client->token)
         {
-            return array("token" => $this->token);
+            return array("token" => $client->token);
         }
-        if($this->getVariable('username') && $this->getVariable('password'))  //grant_type == password
+        if($this->getVariable('username') && $client->getVariable('password'))  //grant_type == password
         {
-            return $this->getAccessTokenFromPassword($this->getVariable('username'), $this->getVariable('password'));
+            return $this->getAccessTokenFromPassword($client->getVariable('username'), $client->getVariable('password'));
         }
         else throw new KKPAInternalErrorType("No access token");
     }
@@ -709,6 +748,7 @@
    */
     private function getAccessTokenFromPassword($username, $password)
     {
+        $client = (is_null($this->client)) ? $this : $this->client;
         if ($username && $password)
         {
           $request_arr = array(
@@ -717,16 +757,18 @@
               "appType" => "Kasa_Android",
               "cloudPassword" => $password,
               "cloudUserName" => $username,
-              "terminalUUID" => $this->uuid
+              "terminalUUID" => $client->uuid
             )
           );
+          unset($this->token);
           $params = json_encode($request_arr);
-          $ret = $this->makeRequest(
+          $client->setLastRequest($params);
+          $ret = $client->makeRequest(
               $params
           );
 
-          $this->setTokens($ret);
-          return $this->token;
+          $client->setTokens($ret);
+          return $client->token;
         }
         else
             throw new KKPAInternalErrorType("missing args for getting password grant");

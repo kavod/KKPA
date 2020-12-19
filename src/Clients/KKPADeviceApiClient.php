@@ -15,8 +15,10 @@ class KKPADeviceApiClient extends KKPAApiClient
 {
   protected $deviceId;
   protected $child_id;
-  public function __construct($conf = array(),$child_id=null)
+  protected $client;
+  public function __construct($conf = array(),$child_id=null,$client=null)
   {
+    $this->client = $client;
     $config = array_merge(array(),$conf);
     if($this->cloud && !array_key_exists('deviceId',$config))
     {
@@ -26,6 +28,10 @@ class KKPADeviceApiClient extends KKPAApiClient
     if (array_key_exists('deviceId',$config)){
       $this->deviceId = $config['deviceId'];
       $this->setVariable('deviceId',$this->deviceId);
+    }
+    if (array_key_exists('token',$config)){
+      $this->token = $config['token'];
+      $this->setVariable('token',$this->token);
     }
     $this->child_id = $child_id;
     $this->setVariable('child_id',$this->child_id);
@@ -49,6 +55,7 @@ class KKPADeviceApiClient extends KKPAApiClient
 
   public function getSysInfo($info=NULL)
   {
+    $client = (is_null($this->client)) ? $this : $this->client;
     if (!is_null($info))
     {
       if(is_string($info))
@@ -117,6 +124,7 @@ class KKPADeviceApiClient extends KKPAApiClient
 
   public function getGenericStats($key)
   {
+    $client = (is_null($this->client)) ? $this : $this->client;
     $return = array();
     if ($this->is_featured('ENE'))
     {

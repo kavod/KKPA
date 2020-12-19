@@ -13,9 +13,9 @@ use KKPA\Common\KKPARestErrorCode;
 
 class KKPABulbApiClient extends KKPADeviceApiClient
 {
-  public function __construct($config = array(),$transition_period=150)
+  public function __construct($config = array(),$transition_period=150,$client=null)
   {
-    parent::__construct($config);
+    parent::__construct($config,null,$client);
     $this->setTransitionPeriod($transition_period);
   }
 

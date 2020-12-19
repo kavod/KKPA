@@ -22,8 +22,7 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
 
       foreach(self::$ref_testDeviceList as $device)
       {
-        // if (!$device['virtual'])
-          self::$ref_deviceList[] = self::$ref_client->getDeviceById($device['deviceId']);
+        self::$ref_deviceList[] = self::$ref_client->getDeviceById($device['deviceId']);
       }
     }
 
@@ -63,9 +62,9 @@ final class KKPAApiClientCloudTest extends \KKPATestPrototype
       $this->checkLatLong('longitude_i',$decode['system']['get_sysinfo']);
     }
 
-    public function testMultiSlots():void
-    {
-      $this->assertTrue(true); // Pass since I do not own this kind of device
-    }
+    // public function testMultiSlots():void
+    // {
+    //   $this->assertTrue(true); // Pass since I do not own this kind of device
+    // }
 }
 ?>

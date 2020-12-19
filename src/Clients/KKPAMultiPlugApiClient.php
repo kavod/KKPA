@@ -48,25 +48,26 @@ class KKPAMultiPlugApiClient extends KKPAPlugApiClient
 
   public function getChildren()
   {
+    $client = (is_null($this->client)) ? $this : $this->client;
     if ($this->has_children())
     {
       if (is_null($this->children))
       {
         $conf = array(
-          "cloud" => $this->cloud,
+          "cloud" => $client->cloud,
           "local_ip" => $this->local_ip,
           "local_port" => $this->local_port,
-          "token" => $this->token,
-          "uuid" => $this->uuid,
-          "username" => $this->getVariable('username',''),
-          "password" => $this->getVariable('password',''),
-          "base_uri" => $this->getVariable('base_uri',TPLINK_BASE_URI),
+          "token" => $client->token,
+          "uuid" => $client->uuid,
+          "username" => $client->getVariable('username',''),
+          "password" => $client->getVariable('password',''),
+          "base_uri" => $client->getVariable('base_uri',TPLINK_BASE_URI),
           "deviceId" => $this->getVariable('deviceId','')
         );
         $children = array();
         foreach($this->getVariable('children',array()) as $child)
         {
-          $children[] = new KKPASlotPlugApiClient($conf,$child['id']);
+          $children[] = new KKPASlotPlugApiClient($conf,$child['id'],$client=$client);
         }
         $this->children = $children;
       }

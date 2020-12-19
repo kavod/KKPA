@@ -9,6 +9,7 @@ define('KKPA_TIMEOUT', -20002); // {"error_code":-20002,"msg": "Request timeout"
 define('KKPA_PARAM_NOT_EXIST', -20104); //{"error_code": -20104,"msg": "Parameter doesn't exist"}
 define('KKPA_DEVICE_OFFLINE', -20571); // {"error_code":-20571,"msg":"Device is offline"}
 define('KKPA_NOT_BINDED', -20580); // {"error_code": -20580,"msg": "Account is not binded to the device"}
+define('KKPA_LOGIN_OTHER_PLACE', -20675); // {"error_code": -20580,"msg": "Account login in other places"}
 
 define('KKPA_EMPTY_ANSWER', 990);
 define('KKPA_NOT_FOUND', 991); // {"error_code": 991,"msg": "Device $deviceId not found on network"}
